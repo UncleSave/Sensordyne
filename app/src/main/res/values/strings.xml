@@ -86,9 +86,13 @@
     <string name="accelerometer">Accelerometer</string>
     <string name="check_sensor">Check Sensor</string>
     <string name="proximity">Proximity</string>
-    <string name="proximitytext">Proximity sensor: %1$.3f cm</string>
-    <string name="accelerometertext">Accelerometer: %1$.3f m/s^2 %2$.3f m/s^2 %3$.3f m/s^2</string>
-    <string name="gravitytext">Gravity: %1$.3f m/s^2 %2$.3f m/s^2 %3$.3f m/s^2</string>
-    <string name="gyroscopetext">Gyroscope: %1$.3f rad/s %2$.3f rad/s %3$.3f rad/s</string>
+    <string name="proximity_text">Proximity sensor: %1$.3f cm</string>
+    <string name="accelerometer_text">Accelerometer: %1$.3f m/s^2 %2$.3f m/s^2 %3$.3f m/s^2</string>
+    <string name="gravity_text">Gravity: %1$.3f m/s^2 %2$.3f m/s^2 %3$.3f m/s^2</string>
+    <string name="gyroscope_text">Gyroscope: %1$.3f rad/s %2$.3f rad/s %3$.3f rad/s</string>
     <string name="device_info">Device Info</string>
+    <string name="share">Share</string>
+    <string name="send">Send</string>
+    <string name="communicate">Communicate</string>
+    <string name="placeholder">(placeholder)</string>
 </resources>

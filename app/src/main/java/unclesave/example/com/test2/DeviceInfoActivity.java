@@ -13,7 +13,7 @@ public class DeviceInfoActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_device_info);
 
-        TextView deviceInfo = findViewById(R.id.deviceinfo);
+        TextView deviceInfo = findViewById(R.id.device_info);
         String deviceName = Build.DEVICE;
         deviceInfo.setText("Device Name: " + deviceName);
         String deviceBuild = Build.BRAND;

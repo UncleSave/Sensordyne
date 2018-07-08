@@ -71,16 +71,16 @@ public class MainActivity extends AppCompatActivity
         gyroscope = sensorManager.getDefaultSensor(Sensor.TYPE_GYROSCOPE);
         gravity = sensorManager.getDefaultSensor(Sensor.TYPE_GRAVITY);
         linearAcceleration = sensorManager.getDefaultSensor(Sensor.TYPE_LINEAR_ACCELERATION);
-        proximityInfo = findViewById(R.id.proximityinfo);
+        proximityInfo = findViewById(R.id.proximity_info);
         if (proximity == null)
             proximityInfo.setText("Proximity sensor cannot be found");
-        accelerometerInfo = findViewById(R.id.accelerometerinfo);
+        accelerometerInfo = findViewById(R.id.accelerometer_info);
         if (accelerometer == null)
             accelerometerInfo.setText("Accelerometer cannot be found");
-        gyroscopeInfo = findViewById(R.id.gyroscopeinfo);
+        gyroscopeInfo = findViewById(R.id.gyroscope_info);
         if (gyroscope == null)
             gyroscopeInfo.setText("Gyroscope sensor cannot be found");
-        gravityInfo = findViewById(R.id.gravityinfo);
+        gravityInfo = findViewById(R.id.gravity_info);
         if (gravity == null)
             gravityInfo.setText("Gravity sensor cannot be found");
     }
@@ -88,6 +88,7 @@ public class MainActivity extends AppCompatActivity
     @Override
     protected void onStart() {
         super.onStart();
+
         if (proximity != null) {
             sensorManager.registerListener(this, proximity,
                     SensorManager.SENSOR_DELAY_NORMAL);
@@ -141,21 +142,17 @@ public class MainActivity extends AppCompatActivity
         int id = item.getItemId();
 
         //noinspection SimplifiableIfStatement
-        if (id == R.id.action_settings) {
-            Intent getSettingsIntent = new Intent(this, SettingsActivity.class);
-            startActivity(getSettingsIntent);
-            return true;
+        switch (id) {
+            case R.id.action_settings: Intent getSettingsIntent = new Intent(this, SettingsActivity.class);
+                startActivity(getSettingsIntent);
+                return true;
+            case R.id.action_about: DialogFragment aboutMeFragment = new AboutMeFragment();
+                aboutMeFragment.show(getFragmentManager(), "aboutMeDialog");
+                return true;
+            case R.id.action_exit: finish();
+                return true;
+            default: break;
         }
-        else if (id == R.id.action_about) {
-            DialogFragment aboutMeFragment = new AboutMeFragment();
-            aboutMeFragment.show(getFragmentManager(), "aboutMeDialog");
-            return true;
-        }
-        else if (id == R.id.action_exit) {
-            finish();
-            return true;
-        }
-
         return super.onOptionsItemSelected(item);
     }
 
@@ -187,7 +184,7 @@ public class MainActivity extends AppCompatActivity
             case Sensor.TYPE_PROXIMITY:
                 //proximityVal = event.values[0];
                 proximityInfo.setText(getResources().getString(
-                        R.string.proximitytext, event.values[0]));
+                        R.string.proximity_text, event.values[0]));
                 break;
             case Sensor.TYPE_ACCELEROMETER:
                 /*
@@ -202,7 +199,7 @@ public class MainActivity extends AppCompatActivity
                 linearAccelerationVal[1] = event.values[1] - gravityVal[1];
                 linearAccelerationVal[2] = event.values[2] - gravityVal[2]; */
                 accelerometerInfo.setText(getResources().getString(
-                        R.string.accelerometertext, event.values[0],
+                        R.string.accelerometer_text, event.values[0],
                         event.values[1], event.values[2]));
                 break;
             case Sensor.TYPE_GYROSCOPE:
@@ -210,7 +207,7 @@ public class MainActivity extends AppCompatActivity
                 gyroscopeVal[1] = event.values[1];
                 gyroscopeVal[2] = event.values[2];*/
                 gyroscopeInfo.setText(getResources().getString(
-                        R.string.gyroscopetext, event.values[0],
+                        R.string.gyroscope_text, event.values[0],
                         event.values[1], event.values[2]));
                 break;
             case Sensor.TYPE_GRAVITY:
@@ -218,7 +215,7 @@ public class MainActivity extends AppCompatActivity
                 gravityVal[1] = event.values[1];
                 gravityVal[2] = event.values[2];*/
                 gravityInfo.setText(getResources().getString(
-                        R.string.gravitytext, event.values[0],
+                        R.string.gravity_text, event.values[0],
                         event.values[1], event.values[2]));
                 break;
             /*case Sensor.TYPE_LINEAR_ACCELERATION:

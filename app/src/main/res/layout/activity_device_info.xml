@@ -6,7 +6,7 @@
     tools:context=".DeviceInfoActivity">
 
     <TextView
-        android:id="@+id/deviceinfo"
+        android:id="@+id/device_info"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:text=""

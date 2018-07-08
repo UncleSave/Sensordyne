@@ -10,42 +10,41 @@
     tools:showIn="@layout/app_bar_main">
 
     <TextView
-        android:id="@+id/proximityinfo"
+        android:id="@+id/proximity_info"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         app:layout_constraintLeft_toLeftOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/deviceinfo"
-        android:text="@string/proximitytext"
+        android:text="@string/proximity_text"
         android:textColor="#000"
         android:textSize="21dp" />
 
     <TextView
-        android:id="@+id/accelerometerinfo"
+        android:id="@+id/accelerometer_info"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         app:layout_constraintLeft_toLeftOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/proximityinfo"
-        android:text="@string/accelerometertext"
+        app:layout_constraintTop_toBottomOf="@+id/proximity_info"
+        android:text="@string/accelerometer_text"
         android:textColor="#000"
         android:textSize="21dp" />
 
     <TextView
-        android:id="@+id/gyroscopeinfo"
+        android:id="@+id/gyroscope_info"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         app:layout_constraintLeft_toLeftOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/accelerometerinfo"
-        android:text="@string/gyroscopetext"
+        app:layout_constraintTop_toBottomOf="@+id/accelerometer_info"
+        android:text="@string/gyroscope_text"
         android:textColor="#000"
         android:textSize="21dp" />
 
     <TextView
-        android:id="@+id/gravityinfo"
+        android:id="@+id/gravity_info"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         app:layout_constraintLeft_toLeftOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/gyroscopeinfo"
-        android:text="@string/gravitytext"
+        app:layout_constraintTop_toBottomOf="@+id/gyroscope_info"
+        android:text="@string/gravity_text"
         android:textColor="#000"
         android:textSize="21dp" />
 

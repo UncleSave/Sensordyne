@@ -12,7 +12,7 @@ import java.util.List;
 
 public class CheckSensorActivity extends AppCompatActivity {
 
-    ArrayList<String> sensorNames = new ArrayList<String>();
+    ArrayList<String> sensorNames = new ArrayList<>();
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
