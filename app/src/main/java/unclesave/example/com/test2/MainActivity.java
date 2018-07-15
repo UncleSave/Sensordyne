@@ -88,7 +88,6 @@ public class MainActivity extends AppCompatActivity
     @Override
     protected void onStart() {
         super.onStart();
-
         if (proximity != null) {
             sensorManager.registerListener(this, proximity,
                     SensorManager.SENSOR_DELAY_NORMAL);
