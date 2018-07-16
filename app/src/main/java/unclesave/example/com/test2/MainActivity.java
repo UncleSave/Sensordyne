@@ -3,6 +3,8 @@ package unclesave.example.com.test2;
 import android.app.DialogFragment;
 import android.content.Context;
 import android.content.Intent;
+import android.database.Cursor;
+import android.database.sqlite.SQLiteDatabase;
 import android.hardware.Sensor;
 import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
@@ -16,10 +18,16 @@ import android.support.v4.widget.DrawerLayout;
 import android.support.v7.app.ActionBarDrawerToggle;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
+import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
+import android.widget.Button;
 import android.widget.TextView;
+import android.widget.Toast;
+
+import java.io.File;
+import java.io.FileOutputStream;
 
 public class MainActivity extends AppCompatActivity
         implements NavigationView.OnNavigationItemSelectedListener, SensorEventListener {
@@ -34,11 +42,16 @@ public class MainActivity extends AppCompatActivity
     private TextView accelerometerInfo;
     private TextView gyroscopeInfo;
     private TextView gravityInfo;
+    private Button outputLeftButton;
+    private Button outputRightButton;
+    private Button exportCSVButton;
+
     /*private double proximityVal;
-    private double accelerometerVal[3];
     private double gyroscopeVal[3];
     private double gravityVal[3];
     private double linearAccelerationVal[3];*/
+    private double accelerometerVal[] = new double[3];
+    private SQLiteDatabase sensorDataDB = null;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -83,6 +96,12 @@ public class MainActivity extends AppCompatActivity
         gravityInfo = findViewById(R.id.gravity_info);
         if (gravity == null)
             gravityInfo.setText("Gravity sensor cannot be found");
+
+        outputLeftButton = findViewById(R.id.left_button);
+        outputRightButton = findViewById(R.id.right_button);
+        exportCSVButton = findViewById(R.id.export_button);
+        getApplicationContext().deleteDatabase("CurInstSensorDB");
+        createDatabase();
     }
 
     @Override
@@ -191,12 +210,12 @@ public class MainActivity extends AppCompatActivity
                 gravityVal[0] = 0.8 * gravityVal[0] + (1 - 0.8) * event.values[0];
                 gravityVal[1] = 0.8 * gravityVal[1] + (1 - 0.8) * event.values[1];
                 gravityVal[2] = 0.8 * gravityVal[2] + (1 - 0.8) * event.values[2];
-                accelerometerVal[0] = event.values[0];
-                accelerometerVal[1] = event.values[1];
-                accelerometerVal[2] = event.values[2];
                 linearAccelerationVal[0] = event.values[0] - gravityVal[0];
                 linearAccelerationVal[1] = event.values[1] - gravityVal[1];
                 linearAccelerationVal[2] = event.values[2] - gravityVal[2]; */
+                accelerometerVal[0] = event.values[0];
+                accelerometerVal[1] = event.values[1];
+                accelerometerVal[2] = event.values[2];
                 accelerometerInfo.setText(getResources().getString(
                         R.string.accelerometer_text, event.values[0],
                         event.values[1], event.values[2]));
@@ -230,5 +249,81 @@ public class MainActivity extends AppCompatActivity
     @Override
     public void onAccuracyChanged(Sensor sensor, int accuracy) {
 
+    }
+
+    public void createDatabase() {
+        try {
+            sensorDataDB = this.openOrCreateDatabase("CurInstSensorDB", MODE_PRIVATE, null);
+
+            sensorDataDB.execSQL("CREATE TABLE IF NOT EXISTS sensordata " +
+                    "(id INTEGER primary key, accelerometerX REAL, accelerometerY REAL, " +
+                    "accelerometerZ REAL, output VARCHAR);");
+            File outputFile = getApplicationContext().getDatabasePath("CurInstSensorDB");
+            if (outputFile.exists())
+                Toast.makeText(this, "Database created", Toast.LENGTH_SHORT).show();
+            else
+                Toast.makeText(this, "Database missing", Toast.LENGTH_SHORT).show();
+        }
+        catch (Exception e) {
+            Log.e("CURINSTSENSORDB ERROR", "Error creating database");
+        }
+        outputRightButton.setClickable(true);
+        outputLeftButton.setClickable(true);
+        exportCSVButton.setClickable(true);
+    }
+
+    public void outputLeft(View view) {
+        sensorDataDB.execSQL("INSERT INTO sensordata (accelerometerX, accelerometerY, accelerometerZ, output) VALUES " +
+                "(" + accelerometerVal[0] + ", " + accelerometerVal[1] + ", " + accelerometerVal[2] +
+                ", " + "'LEFT');");
+        Toast.makeText(this, "Record created", Toast.LENGTH_SHORT).show();
+    }
+
+    public void outputRight(View view) {
+        sensorDataDB.execSQL("INSERT INTO sensordata (accelerometerX, accelerometerY, accelerometerZ, output) VALUES " +
+                "(" + accelerometerVal[0] + ", " + accelerometerVal[1] + ", " + accelerometerVal[2] +
+                ", " + "'RIGHT');");
+        Toast.makeText(this, "Record created", Toast.LENGTH_SHORT).show();
+    }
+
+    public void exportToCSV(View view) {
+        // File outputFile = getApplicationContext().getDatabasePath("CurInstSensorDB");
+        Cursor cur = sensorDataDB.rawQuery("SELECT * FROM sensordata", null);
+        cur.moveToFirst();
+        FileOutputStream outputStream;
+        File file = new File(getApplicationContext().getFilesDir(), "output.csv");
+        if ((cur != null) && (cur.getCount() > 0)) {
+            try {
+                outputStream = new FileOutputStream(file);
+                do {
+                    String id = cur.getString(0);
+                    String accX = cur.getString(1);
+                    String accY = cur.getString(2);
+                    String accZ = cur.getString(3);
+                    String output = cur.getString(4);
+                    outputStream.write(id.getBytes());
+                    outputStream.write(",".getBytes());
+                    outputStream.write(accX.getBytes());
+                    outputStream.write(",".getBytes());
+                    outputStream.write(accY.getBytes());
+                    outputStream.write(",".getBytes());
+                    outputStream.write(accZ.getBytes());
+                    outputStream.write(",".getBytes());
+                    outputStream.write(output.getBytes());
+                    outputStream.write("\n".getBytes());
+                } while (cur.moveToNext());
+
+                outputStream.flush();
+                outputStream.close();
+                Toast.makeText(this, "CSV file created" +
+                        "\n" + file.getAbsolutePath(), Toast.LENGTH_SHORT).show();
+            }
+            catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
+        else
+            Toast.makeText(this, "There are no result", Toast.LENGTH_SHORT).show();
+        cur.close();
     }
 }

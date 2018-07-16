@@ -48,4 +48,35 @@
         android:textColor="#000"
         android:textSize="21dp" />
 
+    <Button
+        android:id="@+id/left_button"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        app:layout_constraintLeft_toLeftOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/gravity_info"
+        android:text="Left"
+        android:onClick="outputLeft"
+        android:clickable="false" />
+
+    <Button
+        android:id="@+id/right_button"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginLeft="104dp"
+        android:clickable="false"
+        android:onClick="outputRight"
+        android:text="Right"
+        app:layout_constraintLeft_toLeftOf="@id/left_button"
+        app:layout_constraintTop_toBottomOf="@+id/gravity_info" />
+
+    <Button
+        android:id="@+id/export_button"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginLeft="104dp"
+        android:clickable="false"
+        android:onClick="exportToCSV"
+        android:text="Export to CSV format"
+        app:layout_constraintTop_toBottomOf="@+id/left_button" />
+
 </android.support.constraint.ConstraintLayout>
