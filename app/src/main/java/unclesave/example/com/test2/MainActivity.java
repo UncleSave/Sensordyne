@@ -25,9 +25,29 @@ import android.view.View;
 import android.widget.Button;
 import android.widget.TextView;
 import android.widget.Toast;
-
 import java.io.File;
 import java.io.FileOutputStream;
+
+
+// AWS Mobile hub backend integration
+import android.app.Activity;
+import android.util.Log;
+
+import com.amazonaws.auth.AWSCredentialsProvider;
+import com.amazonaws.auth.BasicAWSCredentials;
+import com.amazonaws.auth.CognitoCachingCredentialsProvider;
+import com.amazonaws.mobile.auth.core.IdentityHandler;
+import com.amazonaws.mobile.auth.core.IdentityManager;
+import com.amazonaws.mobile.client.AWSMobileClient;
+import com.amazonaws.mobile.client.AWSStartupHandler;
+import com.amazonaws.mobile.client.AWSStartupResult;
+import com.amazonaws.mobile.config.AWSConfiguration;
+import com.amazonaws.mobileconnectors.s3.transferutility.*;
+import com.amazonaws.regions.Regions;
+import com.amazonaws.services.s3.AmazonS3;
+import com.amazonaws.services.s3.AmazonS3Client;
+
+import static android.provider.Contacts.SettingsColumns.KEY;
 
 public class MainActivity extends AppCompatActivity
         implements NavigationView.OnNavigationItemSelectedListener, SensorEventListener {
@@ -45,6 +65,8 @@ public class MainActivity extends AppCompatActivity
     private Button outputLeftButton;
     private Button outputRightButton;
     private Button exportCSVButton;
+    private AWSCredentialsProvider credentialsProvider;
+    private AWSConfiguration configuration;
 
     /*private double proximityVal;
     private double gyroscopeVal[3];
@@ -57,6 +79,35 @@ public class MainActivity extends AppCompatActivity
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+        // AWS Mobile hub backend integration
+        AWSMobileClient.getInstance().initialize(this, new AWSStartupHandler() {
+            @Override
+            public void onComplete(AWSStartupResult awsStartupResult) {
+
+                // Obtain the reference to the AWSCredentialsProvider and AWSConfiguration objects
+                credentialsProvider = AWSMobileClient.getInstance().getCredentialsProvider();
+                configuration = AWSMobileClient.getInstance().getConfiguration();
+
+                // Use IdentityManager#getUserID to fetch the identity id.
+                IdentityManager.getDefaultIdentityManager().getUserID(new IdentityHandler() {
+                    @Override
+                    public void onIdentityId(String identityId) {
+                        Log.d("YourMainActivity", "Identity ID = " + identityId);
+
+                        // Use IdentityManager#getCachedUserID to
+                        //  fetch the locally cached identity id.
+                        final String cachedIdentityId =
+                                IdentityManager.getDefaultIdentityManager().getCachedUserID();
+                    }
+
+                    @Override
+                    public void handleError(Exception exception) {
+                        Log.d("YourMainActivity", "Error in retrieving the identity" + exception);
+                    }
+                });
+            }
+        }).execute();
+
         Toolbar toolbar = findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
 
@@ -131,8 +182,8 @@ public class MainActivity extends AppCompatActivity
 
     @Override
     protected void onStop() {
-        super.onStop();
         sensorManager.unregisterListener(this);
+        super.onStop();
     }
 
     @Override
@@ -325,5 +376,50 @@ public class MainActivity extends AppCompatActivity
         else
             Toast.makeText(this, "There are no result", Toast.LENGTH_SHORT).show();
         cur.close();
+
+        if (file.exists()) {
+            AmazonS3Client s3client = new AmazonS3Client(credentialsProvider);
+            TransferUtility transferUtility =
+                    TransferUtility.builder()
+                            .context(getApplicationContext())
+                            .awsConfiguration(configuration)
+                            .s3Client(s3client)
+                    .build();
+            TransferObserver uploadObserver = transferUtility.upload("test/s3Key.csv",
+                    file);
+
+            // Attach a listener to the observer to get state update and progress notifications
+            uploadObserver.setTransferListener(new TransferListener() {
+                @Override
+                public void onStateChanged(int id, TransferState state) {
+                    if (TransferState.COMPLETED == state) {
+                        // Handle a completed upload.
+                    }
+                }
+
+                @Override
+                public void onProgressChanged(int id, long bytesCurrent, long bytesTotal) {
+                    float percentDonef = ((float) bytesCurrent / (float) bytesTotal) * 100;
+                    int percentDone = (int) percentDonef;
+
+                    Log.d("YourActivity", "ID:" + id + " bytesCurrent: " + bytesCurrent
+                            + " bytesTotal: " + bytesTotal + " " + percentDone + "%");
+                }
+
+                @Override
+                public void onError(int id, Exception ex) {
+                    // Handle errors
+                }
+            });
+
+            // If you prefer to poll for the data, instead of attaching a
+            // listener, check for the state and progress in the observer.
+            if (TransferState.COMPLETED == uploadObserver.getState()) {
+                // Handle a completed upload.
+            }
+
+            Log.d("YourActivity", "Bytes Transferred: " + uploadObserver.getBytesTransferred());
+            Log.d("YourActivity", "Bytes Total: " + uploadObserver.getBytesTotal());
+        }
     }
 }
