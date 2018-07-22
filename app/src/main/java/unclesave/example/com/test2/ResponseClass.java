@@ -1,18 +1,18 @@
 package unclesave.example.com.test2;
 
 public class ResponseClass {
-    String greetings;
+    String output;
 
-    public String getGreetings() {
-        return greetings;
+    public String getOutput() {
+        return output;
     }
 
-    public void setGreetings(String greetings) {
-        this.greetings = greetings;
+    public void setOutput(String output) {
+        this.output = output;
     }
 
-    public ResponseClass(String greetings) {
-        this.greetings = greetings;
+    public ResponseClass(String output) {
+        this.output = output;
     }
 
     public ResponseClass() {

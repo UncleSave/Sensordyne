@@ -56,6 +56,7 @@ public class MainActivity extends AppCompatActivity
     private TextView accelerometerInfo;
     private TextView gyroscopeInfo;
     private TextView countdowntimerInfo;
+    private TextView outputInfo;
     private Button exportCSVButton;
     private AWSCredentialsProvider credentialsProvider;
     private AWSConfiguration configuration;
@@ -63,7 +64,6 @@ public class MainActivity extends AppCompatActivity
     private double gyroscopeVal[] = new double[3];
     private long timeStamp;
     private SQLiteDatabase sensorDataDB = null;
-    private CountDownTimer countDownTimer;
     private LambdaInvokerFactory factory;
     private LambdaInterface lambdaInterface;
 
@@ -140,6 +140,7 @@ public class MainActivity extends AppCompatActivity
         if (gyroscope == null)
             gyroscopeInfo.setText("Gyroscope sensor cannot be found");
         countdowntimerInfo = findViewById(R.id.countdown_timer_info);
+        outputInfo = findViewById(R.id.output_info);
 
         exportCSVButton = findViewById(R.id.export_button);
         getApplicationContext().deleteDatabase("CurInstSensorDB");
@@ -377,7 +378,7 @@ public class MainActivity extends AppCompatActivity
     }
 
     public void startCountDownTimer(View view) {
-        countDownTimer = new CountDownTimer(5000, 1000) {
+        CountDownTimer countDownTimer = new CountDownTimer(5000, 1000) {
             @Override
             public void onTick(long millisUntilFinished) {
                 countdowntimerInfo.setText("Time left: " + millisUntilFinished / 1000 + " s");
@@ -394,8 +395,9 @@ public class MainActivity extends AppCompatActivity
         }.start();
     }
 
-    public void predictOutput() {
-        RequestClass request = new RequestClass("John", "Doe");
+    // Still in development
+    public void predictOutput(View view) {
+        RequestClass request = new RequestClass(timeStamp, accelerometerVal, gyroscopeVal);
         // The Lambda function invocation results in a network call.
         // Make sure it is not called from the main thread.
         new AsyncTask<RequestClass, Void, ResponseClass>() {
@@ -406,7 +408,7 @@ public class MainActivity extends AppCompatActivity
                 try {
                     return lambdaInterface.AndroidBackendLambdaFunction(params[0]);
                 } catch (LambdaFunctionException lfe) {
-                    Log.e("Tag", "Failed to invoke echo", lfe);
+                    Log.e("Tag", "Failed to invoke prediction function", lfe);
                     return null;
                 }
             }
@@ -418,7 +420,7 @@ public class MainActivity extends AppCompatActivity
                 }
 
                 // Do a toast
-                Toast.makeText(MainActivity.this, result.getGreetings(), Toast.LENGTH_LONG).show();
+                outputInfo.setText("Predicted output: " + result.getOutput());
             }
         }.execute(request);
     }
