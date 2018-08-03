@@ -4,76 +4,109 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:layout_margin="16px"
+    android:layout_margin="16dp"
     app:layout_behavior="@string/appbar_scrolling_view_behavior"
     tools:context=".MainActivity"
     tools:showIn="@layout/app_bar_main">
-
-    <TextView
-        android:id="@+id/accelerometer_info"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        app:layout_constraintLeft_toLeftOf="parent"
-        android:text="@string/accelerometer_text"
-        android:textColor="#000"
-        android:textSize="21dp" />
 
     <TextView
         android:id="@+id/gyroscope_info"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         app:layout_constraintLeft_toLeftOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/accelerometer_info"
         android:text="@string/gyroscope_text"
         android:textColor="#000"
-        android:textSize="21dp" />
-
-    <TextView
-        android:id="@+id/countdown_timer_info"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        app:layout_constraintLeft_toLeftOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/gyroscope_info"
-        android:text="@string/countdown_timer_text"
-        android:textColor="#000"
-        android:textSize="21dp" />
+        android:textSize="21sp" />
 
     <Button
         android:id="@+id/export_button"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginLeft="104dp"
+        android:layout_marginStart="104dp"
         android:clickable="false"
         android:onClick="exportToCSV"
-        android:text="Export to CSV format"
-        app:layout_constraintTop_toBottomOf="@+id/countdown_timer_info" />
+        android:text="@string/export_to_csv_format"
+        app:layout_constraintTop_toBottomOf="@+id/gyroscope_info" />
 
     <Button
-        android:id="@+id/countdown_timer_button"
+        android:id="@+id/start_button"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
+        android:layout_marginStart="104dp"
         android:clickable="true"
-        android:onClick="startCountDownTimer"
-        android:text="Start timer"
+        android:text="Start collect"
+        android:onClick="startCollect"
         app:layout_constraintTop_toBottomOf="@+id/export_button" />
+
+    <Button
+        android:id="@+id/stop_button"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="148dp"
+        android:clickable="false"
+        android:text="@string/stop_collect"
+        android:onClick="stopCollect"
+        app:layout_constraintLeft_toLeftOf="@id/start_button"
+        app:layout_constraintTop_toBottomOf="@+id/export_button" />
+
+    <Button
+        android:id="@+id/left_button"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:clickable="false"
+        android:text="Left"
+        android:onClick="labelOutput"
+        app:layout_constraintTop_toBottomOf="@+id/start_button" />
+
+    <Button
+        android:id="@+id/right_button"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="100dp"
+        android:clickable="false"
+        android:text="@string/right"
+        android:onClick="labelOutput"
+        app:layout_constraintLeft_toLeftOf="@id/left_button"
+        app:layout_constraintTop_toBottomOf="@+id/start_button" />
+
+    <Button
+        android:id="@+id/both_button"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="100dp"
+        android:clickable="false"
+        android:text="@string/both"
+        android:onClick="labelOutput"
+        app:layout_constraintTop_toBottomOf="@+id/left_button" />
+
+    <Button
+        android:id="@+id/unknown_button"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="100dp"
+        android:clickable="false"
+        android:text="@string/unknown"
+        android:onClick="labelOutput"
+        app:layout_constraintLeft_toLeftOf="@id/both_button"
+        app:layout_constraintTop_toBottomOf="@+id/left_button" />
 
     <TextView
         android:id="@+id/output_info"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         app:layout_constraintLeft_toLeftOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/countdown_timer_button"
-        android:text="Predicted output: NULL"
+        app:layout_constraintTop_toBottomOf="@+id/both_button"
+        android:text="@string/predicted_output_null"
         android:textColor="#000"
-        android:textSize="21dp" />
+        android:textSize="21sp" />
 
     <Button
         android:id="@+id/predict_output_button"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:clickable="true"
+        android:clickable="false"
         android:onClick="predictOutput"
-        android:text="Predict output"
+        android:text="@string/predict_output"
         app:layout_constraintTop_toBottomOf="@+id/output_info" />
 
 </android.support.constraint.ConstraintLayout>

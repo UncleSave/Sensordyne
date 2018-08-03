@@ -28,5 +28,11 @@
     "Default": {
       "Region": "us-east-1"
     }
+  },
+  "UserFileManager": {
+    "Default": {
+      "Bucket": "test-userfiles-mobilehub-1913606923",
+      "Region": "us-east-1"
+    }
   }
 }

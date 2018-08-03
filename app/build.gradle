@@ -33,6 +33,7 @@ dependencies {
     androidTestImplementation 'com.android.support.test.espresso:espresso-core:3.0.2'
     implementation 'com.amazonaws:aws-android-sdk-core:2.2.+'
     implementation 'com.amazonaws:aws-android-sdk-s3:2.6.+'
+    implementation 'com.amazonaws:aws-android-sdk-cognito:2.6.+'
     implementation 'com.amazonaws:aws-android-sdk-ddb:2.6.+'
     implementation 'com.amazonaws:aws-android-sdk-lambda:2.2.+'
     implementation ('com.amazonaws:aws-android-sdk-cognitoauth:2.6.+@aar') { transitive = true }

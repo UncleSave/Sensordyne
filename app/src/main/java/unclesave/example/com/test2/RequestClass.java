@@ -1,24 +1,11 @@
 package unclesave.example.com.test2;
 
 public class RequestClass {
-    long timeStamp;
-    double accelerometerVal[];
-    double gyroscopeVal[];
+    private long timeStamp;
+    private double gyroscopeVal[];
 
     public long getTimeStamp() {
         return timeStamp;
-    }
-
-    public double[] getAccelerometerVal() {
-        return accelerometerVal;
-    }
-
-    public void setAccelerometerVal(double[] accelerometerVal) {
-        this.accelerometerVal = accelerometerVal;
-    }
-
-    public void setTimeStamp(long timeStamp) {
-        this.timeStamp = timeStamp;
     }
 
     public double[] getGyroscopeVal() {
@@ -29,10 +16,13 @@ public class RequestClass {
         this.gyroscopeVal = gyroscopeVal;
     }
 
-    public RequestClass(long timeStamp, double accelerometerVal[], double gyroscopeVal[]) {
+    public void setTimeStamp(long timeStamp) {
         this.timeStamp = timeStamp;
-        this.accelerometerVal = accelerometerVal;
-        this.gyroscopeVal = gyroscopeVal;
+    }
+
+    public RequestClass(long timeStamp, double accelerometerVal[]) {
+        this.timeStamp = timeStamp;
+        this.gyroscopeVal = accelerometerVal;
     }
 
     public RequestClass() {

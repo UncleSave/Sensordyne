@@ -91,4 +91,11 @@
     <string name="send">Send</string>
     <string name="communicate">Communicate</string>
     <string name="placeholder">(placeholder)</string>
+    <string name="export_to_csv_format">Export to CSV format</string>
+    <string name="stop_collect">Stop collect</string>
+    <string name="right">Right</string>
+    <string name="both">Both</string>
+    <string name="unknown">Unknown</string>
+    <string name="predicted_output_null">Predicted output: NULL</string>
+    <string name="predict_output">Predict output</string>
 </resources>
