@@ -367,10 +367,16 @@ public class MainActivity extends AppCompatActivity
     }
 
     public void labelOutput(View view) {
-        gestures.add(labelInfo.getText().toString().toLowerCase());
-        labelListInfo.setText("List of labels: " + gestures);
-        Toast.makeText(this, "New label added",
-                Toast.LENGTH_SHORT).show();
+        if (gestures.contains(labelInfo.getText().toString().toLowerCase())) {
+            Toast.makeText(this, "The label exists, please try others",
+                    Toast.LENGTH_SHORT).show();
+        }
+        else {
+            gestures.add(labelInfo.getText().toString().toLowerCase());
+            Toast.makeText(this, "New label added",
+                    Toast.LENGTH_SHORT).show();
+            labelListInfo.setText("List of labels: " + gestures);
+        }
     }
 
     public void exportToCSV(View view) {
