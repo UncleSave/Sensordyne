@@ -367,7 +367,7 @@ public class MainActivity extends AppCompatActivity
     }
 
     public void labelOutput(View view) {
-        automatedEventInfo.setText("haha");
+        automatedEventInfo.setText("hahxda");
         if (gestures.contains(labelInfo.getText().toString().toLowerCase())) {
             Toast.makeText(this, "The label exists, please try others",
                     Toast.LENGTH_SHORT).show();
