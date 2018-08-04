@@ -32,12 +32,17 @@ import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 import android.widget.Button;
+import android.widget.EditText;
 import android.widget.TextView;
 import android.widget.Toast;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Date;
+import java.util.Random;
+import java.util.Timer;
+import java.util.TimerTask;
 
 // AWS Mobile hub backend integration
 import com.amazonaws.auth.AWSCredentialsProvider;
@@ -63,12 +68,13 @@ public class MainActivity extends AppCompatActivity
     private TextView gyroscopeInfo;
     private TextView outputInfo;
     private Button exportCSVButton;
+    private TextView labelInstruct;
+    private EditText labelInfo;
+    private Button labelButton;
+    private TextView labelListInfo;
     private Button startCollectButton;
     private Button stopCollectButton;
-    private Button outputLeftButton;
-    private Button outputRightButton;
-    private Button outputBothButton;
-    private Button outputUnknownButton;
+    private TextView automatedEventInfo;
     private AWSCredentialsProvider credentialsProvider;
     private AWSConfiguration configuration;
     private double gyroscopeVal[] = new double[3];
@@ -76,7 +82,10 @@ public class MainActivity extends AppCompatActivity
     private SQLiteDatabase sensorDataDB = null;
     private LambdaInvokerFactory factory;
     private LambdaInterface lambdaInterface;
+    private ArrayList<String> gestures = new ArrayList<>();
     private String gesture = "";
+    private Timer timer;
+    private TimerTask timerTask;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -169,17 +178,15 @@ public class MainActivity extends AppCompatActivity
         outputInfo = findViewById(R.id.output_info);
 
         exportCSVButton = findViewById(R.id.export_button);
+        labelInstruct = findViewById(R.id.label_instruct);
+        labelInfo = findViewById(R.id.label_info);
+        labelButton = findViewById(R.id.label_button);
+        labelListInfo = findViewById(R.id.label_list_info);
         startCollectButton = findViewById(R.id.start_button);
         stopCollectButton = findViewById(R.id.stop_button);
-        outputLeftButton = findViewById(R.id.left_button);
-        outputRightButton = findViewById(R.id.right_button);
-        outputBothButton = findViewById(R.id.both_button);
-        outputUnknownButton = findViewById(R.id.unknown_button);
+        automatedEventInfo = findViewById(R.id.automated_gesture_event);
 
-        outputLeftButton.setVisibility(View.GONE);
-        outputRightButton.setVisibility(View.GONE);
-        outputBothButton.setVisibility(View.GONE);
-        outputUnknownButton.setVisibility(View.GONE);
+        automatedEventInfo.setVisibility(View.GONE);
 
         getApplicationContext().deleteDatabase("CurInstSensorDB");
         createDatabase();
@@ -313,52 +320,57 @@ public class MainActivity extends AppCompatActivity
     }
 
     public void startCollect(View view) {
+        labelButton.setClickable(false);
         startCollectButton.setClickable(false);
         exportCSVButton.setClickable(false);
-        outputLeftButton.setVisibility(View.VISIBLE);
-        outputRightButton.setVisibility(View.VISIBLE);
-        outputBothButton.setVisibility(View.VISIBLE);
-        outputUnknownButton.setVisibility(View.VISIBLE);
         stopCollectButton.setClickable(true);
-        Toast.makeText(this, "Process starts now, " +
-                "click either one of the button below to put label for the data",
+        automatedEventInfo.setVisibility(View.VISIBLE);
+        Toast.makeText(this, "Please enter text to " +
+                        "put label for the sensor data",
                 Toast.LENGTH_LONG).show();
+        Random randomTime = new Random();
+        int randomTimeBound = randomTime.nextInt(5000) + 2000;
+        try {
+            timer = new Timer();
+            timerTask = new TimerTask() {
+                @Override
+                public void run() {
+                    runOnUiThread(new Runnable() {
+                        @Override
+                        public void run() {
+                            Random rand = new Random();
+                            int random = rand.nextInt(gestures.size());
+                            String g = gestures.get(random);
+                            automatedEventInfo.setText("Show gesture: " + gestures.get(random));
+                            gesture = g;
+                        }
+                    });
+                }
+            };
+            timer.schedule(timerTask, 0, randomTimeBound);
+        } catch (IllegalStateException e) {
+            Toast.makeText(this, "Some error occurs, please try again",
+                    Toast.LENGTH_SHORT).show();
+        }
     }
 
     public void stopCollect(View view) {
+        labelButton.setClickable(true);
         startCollectButton.setClickable(true);
         exportCSVButton.setClickable(true);
-        outputLeftButton.setVisibility(View.GONE);
-        outputRightButton.setVisibility(View.GONE);
-        outputBothButton.setVisibility(View.GONE);
-        outputUnknownButton.setVisibility(View.GONE);
         stopCollectButton.setClickable(false);
+        automatedEventInfo.setVisibility(View.GONE);
         gesture = "";
         Toast.makeText(this, "Process stops now",
                 Toast.LENGTH_SHORT).show();
+        timer.cancel();
     }
 
     public void labelOutput(View view) {
-        switch(view.getId()) {
-            case R.id.left_button:
-                gesture = "Left";
-                Toast.makeText(this, "Please hold your phone in left hand", Toast.LENGTH_LONG).show();
-                break;
-            case R.id.right_button:
-                gesture = "Right";
-                Toast.makeText(this, "Please hold your phone in right hand", Toast.LENGTH_LONG).show();
-                break;
-            case R.id.both_button:
-                gesture = "Both";
-                Toast.makeText(this, "Please hold your phone in both hand", Toast.LENGTH_LONG).show();
-                break;
-            case R.id.unknown_button:
-                gesture = "Unknown";
-                Toast.makeText(this, "Put your phone on table", Toast.LENGTH_LONG).show();
-                break;
-            default:
-                break;
-        }
+        gestures.add(labelInfo.getText().toString().toLowerCase());
+        labelListInfo.setText("List of labels: " + gestures);
+        Toast.makeText(this, "New label added",
+                Toast.LENGTH_SHORT).show();
     }
 
     public void exportToCSV(View view) {

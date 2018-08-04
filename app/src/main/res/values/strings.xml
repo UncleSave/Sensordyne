@@ -98,4 +98,5 @@
     <string name="unknown">Unknown</string>
     <string name="predicted_output_null">Predicted output: NULL</string>
     <string name="predict_output">Predict output</string>
+    <string name="label">Label</string>
 </resources>

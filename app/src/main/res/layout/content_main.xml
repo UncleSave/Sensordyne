@@ -28,6 +28,46 @@
         android:text="@string/export_to_csv_format"
         app:layout_constraintTop_toBottomOf="@+id/gyroscope_info" />
 
+    <TextView
+        android:id="@+id/label_instruct"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        app:layout_constraintLeft_toLeftOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/export_button"
+        android:text="Please enter your label at the line below:"
+        android:textColor="#000"
+        android:textSize="21sp" />
+
+    <EditText
+        android:id="@+id/label_info"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        app:layout_constraintLeft_toLeftOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/label_instruct"
+        android:text="Ex: left"
+        android:inputType="text"
+        android:textColor="#000"
+        android:textSize="21sp" />
+
+    <Button
+        android:id="@+id/label_button"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:clickable="true"
+        android:onClick="labelOutput"
+        android:text="@string/label"
+        app:layout_constraintTop_toBottomOf="@+id/label_info" />
+
+    <TextView
+        android:id="@+id/label_list_info"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        app:layout_constraintLeft_toLeftOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/label_button"
+        android:text="List of labels: "
+        android:textColor="#000"
+        android:textSize="21sp" />
+
     <Button
         android:id="@+id/start_button"
         android:layout_width="wrap_content"
@@ -36,7 +76,7 @@
         android:clickable="true"
         android:text="Start collect"
         android:onClick="startCollect"
-        app:layout_constraintTop_toBottomOf="@+id/export_button" />
+        app:layout_constraintTop_toBottomOf="@+id/label_list_info" />
 
     <Button
         android:id="@+id/stop_button"
@@ -47,58 +87,28 @@
         android:text="@string/stop_collect"
         android:onClick="stopCollect"
         app:layout_constraintLeft_toLeftOf="@id/start_button"
-        app:layout_constraintTop_toBottomOf="@+id/export_button" />
+        app:layout_constraintTop_toBottomOf="@+id/label_list_info" />
 
-    <Button
-        android:id="@+id/left_button"
+    <TextView
+        android:id="@+id/automated_gesture_event"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:clickable="false"
-        android:text="Left"
-        android:onClick="labelOutput"
-        app:layout_constraintTop_toBottomOf="@+id/start_button" />
-
-    <Button
-        android:id="@+id/right_button"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginStart="100dp"
-        android:clickable="false"
-        android:text="@string/right"
-        android:onClick="labelOutput"
-        app:layout_constraintLeft_toLeftOf="@id/left_button"
-        app:layout_constraintTop_toBottomOf="@+id/start_button" />
-
-    <Button
-        android:id="@+id/both_button"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginStart="100dp"
-        android:clickable="false"
-        android:text="@string/both"
-        android:onClick="labelOutput"
-        app:layout_constraintTop_toBottomOf="@+id/left_button" />
-
-    <Button
-        android:id="@+id/unknown_button"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginStart="100dp"
-        android:clickable="false"
-        android:text="@string/unknown"
-        android:onClick="labelOutput"
-        app:layout_constraintLeft_toLeftOf="@id/both_button"
-        app:layout_constraintTop_toBottomOf="@+id/left_button" />
+        app:layout_constraintLeft_toLeftOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/start_button"
+        android:text="Show gesture: "
+        android:textColor="#000"
+        android:textSize="21sp" />
 
     <TextView
         android:id="@+id/output_info"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         app:layout_constraintLeft_toLeftOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/both_button"
+        app:layout_constraintTop_toBottomOf="@+id/label_info"
         android:text="@string/predicted_output_null"
         android:textColor="#000"
-        android:textSize="21sp" />
+        android:textSize="21sp"
+        android:visibility="gone" />
 
     <Button
         android:id="@+id/predict_output_button"
@@ -107,6 +117,7 @@
         android:clickable="false"
         android:onClick="predictOutput"
         android:text="@string/predict_output"
-        app:layout_constraintTop_toBottomOf="@+id/output_info" />
+        app:layout_constraintTop_toBottomOf="@+id/output_info"
+        android:visibility="gone" />
 
 </android.support.constraint.ConstraintLayout>
