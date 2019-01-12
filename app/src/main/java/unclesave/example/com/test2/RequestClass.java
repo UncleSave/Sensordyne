@@ -1,30 +1,29 @@
 package unclesave.example.com.test2;
 
 public class RequestClass {
-    private long timeStamp;
-    private double gyroscopeVal[];
+    private String urllink;
+    private String androidID;
 
-    public long getTimeStamp() {
-        return timeStamp;
+    public String getUrllink() {
+        return urllink;
     }
 
-    public double[] getGyroscopeVal() {
-        return gyroscopeVal;
+    public void setUrllink(String urllink) {
+        this.urllink = urllink;
     }
 
-    public void setGyroscopeVal(double[] gyroscopeVal) {
-        this.gyroscopeVal = gyroscopeVal;
+    public String getAndroidID() {
+        return androidID;
     }
 
-    public void setTimeStamp(long timeStamp) {
-        this.timeStamp = timeStamp;
+    public void setAndroidID(String androidID) {
+        this.androidID = androidID;
     }
 
-    public RequestClass(long timeStamp, double accelerometerVal[]) {
-        this.timeStamp = timeStamp;
-        this.gyroscopeVal = accelerometerVal;
+    public RequestClass(String urllink, String androidID) {
+        this.urllink = urllink;
+        this.androidID = androidID;
     }
-
     public RequestClass() {
     }
 }

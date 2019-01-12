@@ -99,4 +99,7 @@
     <string name="predicted_output_null">Predicted output: NULL</string>
     <string name="predict_output">Predict output</string>
     <string name="label">Label</string>
+    <string name="delete_csv_file">Delete csv file</string>
+    <string name="delete_dataset">Delete dataset</string>
+    <string name="build_model">Build model</string>
 </resources>

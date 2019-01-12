@@ -1,7 +1,6 @@
 package unclesave.example.com.test2;
 
 import android.app.AlertDialog;
-import android.app.Dialog;
 import android.app.DialogFragment;
 import android.content.Context;
 import android.content.DialogInterface;
@@ -13,9 +12,7 @@ import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
 import android.hardware.SensorManager;
 import android.net.ConnectivityManager;
-import android.net.Network;
 import android.net.NetworkInfo;
-import android.net.wifi.WifiManager;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.provider.Settings;
@@ -27,6 +24,7 @@ import android.support.v4.widget.DrawerLayout;
 import android.support.v7.app.ActionBarDrawerToggle;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
+import android.text.method.ScrollingMovementMethod;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
@@ -35,16 +33,21 @@ import android.widget.Button;
 import android.widget.EditText;
 import android.widget.TextView;
 import android.widget.Toast;
+
 import java.io.File;
 import java.io.FileOutputStream;
+import java.io.IOException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.Random;
 import java.util.Timer;
 import java.util.TimerTask;
+import java.util.concurrent.TimeUnit;
 
 // AWS Mobile hub backend integration
+import com.amazonaws.AmazonServiceException;
+import com.amazonaws.ClientConfiguration;
 import com.amazonaws.auth.AWSCredentialsProvider;
 import com.amazonaws.auth.CognitoCachingCredentialsProvider;
 import com.amazonaws.mobile.auth.core.IdentityHandler;
@@ -53,12 +56,14 @@ import com.amazonaws.mobile.client.AWSMobileClient;
 import com.amazonaws.mobile.client.AWSStartupHandler;
 import com.amazonaws.mobile.client.AWSStartupResult;
 import com.amazonaws.mobile.config.AWSConfiguration;
-import com.amazonaws.mobileconnectors.lambdainvoker.LambdaFunctionException;
 import com.amazonaws.mobileconnectors.lambdainvoker.*;
 import com.amazonaws.regions.Regions;
 import com.amazonaws.mobileconnectors.s3.transferutility.*;
 import com.amazonaws.services.s3.AmazonS3Client;
+import com.amazonaws.services.s3.model.DeleteObjectRequest;
 
+import okhttp3.OkHttpClient;
+import okhttp3.Request;
 
 public class MainActivity extends AppCompatActivity
         implements NavigationView.OnNavigationItemSelectedListener, SensorEventListener {
@@ -66,7 +71,6 @@ public class MainActivity extends AppCompatActivity
     private SensorManager sensorManager;
     private Sensor gyroscope;
     private TextView gyroscopeInfo;
-    private TextView outputInfo;
     private Button exportCSVButton;
     private TextView labelInstruct;
     private EditText labelInfo;
@@ -77,11 +81,10 @@ public class MainActivity extends AppCompatActivity
     private TextView automatedEventInfo;
     private AWSCredentialsProvider credentialsProvider;
     private AWSConfiguration configuration;
+    private String androidID;
     private double gyroscopeVal[] = new double[3];
     private long timeStamp;
     private SQLiteDatabase sensorDataDB = null;
-    private LambdaInvokerFactory factory;
-    private LambdaInterface lambdaInterface;
     private ArrayList<String> gestures = new ArrayList<>();
     private String gesture = "";
     private Timer timer;
@@ -145,9 +148,6 @@ public class MainActivity extends AppCompatActivity
                 "us-east-1:0c63f012-ff89-4907-88ea-527828cd5db0", // Identity pool ID
                 Regions.US_EAST_1 // Region
         );
-        factory = new LambdaInvokerFactory(this.getApplicationContext(),
-                Regions.US_EAST_1, cognitoProvider);
-        lambdaInterface = factory.build(LambdaInterface.class);
 
         Toolbar toolbar = findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
@@ -170,12 +170,13 @@ public class MainActivity extends AppCompatActivity
         NavigationView navigationView = findViewById(R.id.nav_view);
         navigationView.setNavigationItemSelectedListener(this);
 
+        androidID = Settings.Secure.getString(getContentResolver(),
+                Settings.Secure.ANDROID_ID);
         sensorManager = (SensorManager)getSystemService(Context.SENSOR_SERVICE);
         gyroscope = sensorManager.getDefaultSensor(Sensor.TYPE_GYROSCOPE);
         gyroscopeInfo = findViewById(R.id.gyroscope_info);
         if (gyroscope == null)
             gyroscopeInfo.setText("Gyroscope cannot be found");
-        outputInfo = findViewById(R.id.output_info);
 
         exportCSVButton = findViewById(R.id.export_button);
         labelInstruct = findViewById(R.id.label_instruct);
@@ -204,12 +205,15 @@ public class MainActivity extends AppCompatActivity
     @Override
     protected void onPause() {
         super.onPause();
+        if (gyroscope != null) {
+            sensorManager.unregisterListener(this);
+        }
     }
 
     @Override
     protected void onStop() {
-        sensorManager.unregisterListener(this);
         super.onStop();
+        sensorManager.unregisterListener(this);
     }
 
     @Override
@@ -265,6 +269,13 @@ public class MainActivity extends AppCompatActivity
             Intent getDeviceInfoIntent = new Intent(this, DeviceInfoActivity.class);
             startActivity(getDeviceInfoIntent);
             return true;
+        } else if (id == R.id.nav_delete_csv_info) {
+            Intent getDeleteCSVIntent = new Intent(this, DeleteCSVActivity.class);
+            startActivity(getDeleteCSVIntent);
+            return true;
+        } else if (id == R.id.nav_build_model_info) {
+            Intent getBuildModelIntent = new Intent(this, BuildModelActivity.class);
+            startActivity(getBuildModelIntent);
         }
 
         DrawerLayout drawer = findViewById(R.id.drawer_layout);
@@ -367,7 +378,6 @@ public class MainActivity extends AppCompatActivity
     }
 
     public void labelOutput(View view) {
-        automatedEventInfo.setText("hahxda");
         if (gestures.contains(labelInfo.getText().toString().toLowerCase())) {
             Toast.makeText(this, "The label exists, please try others",
                     Toast.LENGTH_SHORT).show();
@@ -433,8 +443,7 @@ public class MainActivity extends AppCompatActivity
             Date date = new Date();
             String sdf = new SimpleDateFormat("yyyy-MM-dd hh:mm:ss a").format(date);
             TransferObserver uploadObserver = transferUtility.upload(
-                    Settings.Secure.getString(getContentResolver(),
-                    Settings.Secure.ANDROID_ID) + "/" + sdf + ".csv",
+                    androidID + "/" + sdf + ".csv",
                     file);
 
             // Attach a listener to the observer to get state update and progress notifications
@@ -470,36 +479,5 @@ public class MainActivity extends AppCompatActivity
             Log.d("YourActivity", "Bytes Transferred: " + uploadObserver.getBytesTransferred());
             Log.d("YourActivity", "Bytes Total: " + uploadObserver.getBytesTotal());
         }
-    }
-
-
-    // Still in development
-    public void predictOutput(View view) {
-        RequestClass request = new RequestClass(timeStamp, gyroscopeVal);
-        // The Lambda function invocation results in a network call.
-        // Make sure it is not called from the main thread.
-        new AsyncTask<RequestClass, Void, ResponseClass>() {
-            @Override
-            protected ResponseClass doInBackground(RequestClass... params) {
-                // invoke "echo" method. In case it fails, it will throw a
-                // LambdaFunctionException.
-                try {
-                    return lambdaInterface.AndroidBackendLambdaFunction(params[0]);
-                } catch (LambdaFunctionException lfe) {
-                    Log.e("Tag", "Failed to invoke prediction function", lfe);
-                    return null;
-                }
-            }
-
-            @Override
-            protected void onPostExecute(ResponseClass result) {
-                if (result == null) {
-                    return;
-                }
-
-                // Do a toast
-                outputInfo.setText("Predicted output: " + result.getOutput());
-            }
-        }.execute(request);
     }
 }

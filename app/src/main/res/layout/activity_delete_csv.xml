@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:padding="10dp"
+    app:layout_behavior="@string/appbar_scrolling_view_behavior"
+    tools:context=".DeleteCSVActivity">
+
+    <EditText
+        android:id="@+id/delete_dataset_info"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        app:layout_constraintLeft_toLeftOf="parent"
+        android:hint="Enter file name here"
+        android:inputType="text"
+        android:textColor="#000"
+        android:textSize="21sp" />
+
+    <Button
+        android:id="@+id/delete_button"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_below="@id/delete_dataset_info"
+        android:clickable="true"
+        android:onClick="deleteFile"
+        android:text="Delete dataset" />
+
+    <TextView
+        android:id="@+id/delete_output"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_below="@id/delete_output"
+        android:textColor="#000"
+        android:textSize="21sp" />
+
+</RelativeLayout>

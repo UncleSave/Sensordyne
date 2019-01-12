@@ -20,23 +20,6 @@ public class DeviceInfoActivity extends AppCompatActivity {
         deviceInfo.append("\nDevice Brand: " + deviceBuild);
         String deviceRelease = Build.VERSION.RELEASE;
         deviceInfo.append("\nDevice Version: " + deviceRelease);
-        /*switch (Build.VERSION.RELEASE) {
-            case "6.0":
-            case "6.0.1":
-            case "7.0":
-            case "7.1":
-            case "7.1.1":
-            case "7.1.2":
-            case "8.0":
-            case "8.1":
-                break;
-            default:
-                WifiManager wifiManager = (WifiManager) getApplicationContext().getSystemService(Context.WIFI_SERVICE);
-                WifiInfo wInfo = wifiManager.getConnectionInfo();
-                String deviceMac = wInfo.getMacAddress();
-                deviceInfo.append("\nDevice Mac Address: " + deviceMac);
-                break;
-        }*/
         String androidID = Settings.Secure.getString(getContentResolver(),
                 Settings.Secure.ANDROID_ID);
         deviceInfo.append("\nDevice Android ID: " + androidID);

@@ -10,19 +10,12 @@
         <item
             android:id="@+id/nav_device_info"
             android:title="@string/device_info" />
+        <item
+            android:id="@+id/nav_delete_csv_info"
+            android:title="@string/delete_dataset" />
+        <item
+            android:id="@+id/nav_build_model_info"
+            android:title="@string/build_model" />
     </group>
-
-    <item android:title="@string/communicate">
-        <menu>
-            <item
-                android:id="@+id/nav_share"
-                android:icon="@drawable/ic_menu_share"
-                android:title="@string/share" />
-            <item
-                android:id="@+id/nav_send"
-                android:icon="@drawable/ic_menu_send"
-                android:title="@string/send" />
-        </menu>
-    </item>
 
 </menu>

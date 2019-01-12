@@ -4,7 +4,7 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:layout_margin="16dp"
+    android:padding="10dp"
     app:layout_behavior="@string/appbar_scrolling_view_behavior"
     tools:context=".MainActivity"
     tools:showIn="@layout/app_bar_main">
@@ -94,30 +94,9 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         app:layout_constraintLeft_toLeftOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/start_button"
+        app:layout_constraintTop_toBottomOf="@+id/stop_button"
         android:text="Show gesture: "
         android:textColor="#000"
         android:textSize="21sp" />
-
-    <TextView
-        android:id="@+id/output_info"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        app:layout_constraintLeft_toLeftOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/label_info"
-        android:text="@string/predicted_output_null"
-        android:textColor="#000"
-        android:textSize="21sp"
-        android:visibility="gone" />
-
-    <Button
-        android:id="@+id/predict_output_button"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:clickable="false"
-        android:onClick="predictOutput"
-        android:text="@string/predict_output"
-        app:layout_constraintTop_toBottomOf="@+id/output_info"
-        android:visibility="gone" />
 
 </android.support.constraint.ConstraintLayout>
