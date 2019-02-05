@@ -5,6 +5,7 @@ import android.app.DialogFragment;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.hardware.Sensor;
@@ -43,6 +44,8 @@ import java.util.Date;
 import java.util.Random;
 import java.util.Timer;
 import java.util.TimerTask;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
 // AWS Mobile hub backend integration
@@ -70,7 +73,11 @@ public class MainActivity extends AppCompatActivity
 
     private SensorManager sensorManager;
     private Sensor gyroscope;
+    private Sensor accelerometer;
+    private Boolean gyroSwitchPref;
+    private Boolean accSwitchPref;
     private TextView gyroscopeInfo;
+    private TextView accelerometerInfo;
     private Button exportCSVButton;
     private TextView labelInstruct;
     private EditText labelInfo;
@@ -82,13 +89,18 @@ public class MainActivity extends AppCompatActivity
     private AWSCredentialsProvider credentialsProvider;
     private AWSConfiguration configuration;
     private String androidID;
-    private double gyroscopeVal[] = new double[3];
+    private float gyroscopeVal[] = new float[3];
+    private float acceleroVal[] = new float[3];
+    private boolean gyro = false, accelero = false;
     private long timeStamp;
     private SQLiteDatabase sensorDataDB = null;
+    private File outputFile;
     private ArrayList<String> gestures = new ArrayList<>();
+    private boolean collectStatus;
     private String gesture = "";
     private Timer timer;
     private TimerTask timerTask;
+    private ExecutorService executor = Executors.newFixedThreadPool(1);
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -152,15 +164,6 @@ public class MainActivity extends AppCompatActivity
         Toolbar toolbar = findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
 
-        FloatingActionButton fab = findViewById(R.id.fab);
-        fab.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                Snackbar.make(view, "Replace with your own action", Snackbar.LENGTH_LONG)
-                        .setAction("Action", null).show();
-            }
-        });
-
         DrawerLayout drawer = findViewById(R.id.drawer_layout);
         ActionBarDrawerToggle toggle = new ActionBarDrawerToggle(
                 this, drawer, toolbar, R.string.navigation_drawer_open, R.string.navigation_drawer_close);
@@ -170,14 +173,30 @@ public class MainActivity extends AppCompatActivity
         NavigationView navigationView = findViewById(R.id.nav_view);
         navigationView.setNavigationItemSelectedListener(this);
 
+        android.support.v7.preference.PreferenceManager
+                .setDefaultValues(this, R.xml.preferences, false);
+        SharedPreferences sharedPref =
+                android.support.v7.preference.PreferenceManager
+                        .getDefaultSharedPreferences(this);
+        gyroSwitchPref = sharedPref.getBoolean
+                (SettingsActivity.KEY_PREF_GYROSCOPE_SWITCH, false);
+        accSwitchPref = sharedPref.getBoolean
+                (SettingsActivity.KEY_PREF_ACCELEROMETER_SWITCH, false);
         androidID = Settings.Secure.getString(getContentResolver(),
                 Settings.Secure.ANDROID_ID);
         sensorManager = (SensorManager)getSystemService(Context.SENSOR_SERVICE);
         gyroscope = sensorManager.getDefaultSensor(Sensor.TYPE_GYROSCOPE);
         gyroscopeInfo = findViewById(R.id.gyroscope_info);
         if (gyroscope == null)
-            gyroscopeInfo.setText("Gyroscope cannot be found");
-
+            gyroscopeInfo.setText("Unable to detect gyroscope");
+        else if (!gyroSwitchPref)
+            gyroscopeInfo.setText("Gyroscope is disabled");
+        accelerometer = sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER);
+        accelerometerInfo = findViewById(R.id.accelerometer_info);
+        if (accelerometer == null)
+            accelerometerInfo.setText("Unable to detect accelerometer");
+        else if (!accSwitchPref)
+            accelerometerInfo.setText("Accelerometer is disabled");
         exportCSVButton = findViewById(R.id.export_button);
         labelInstruct = findViewById(R.id.label_instruct);
         labelInfo = findViewById(R.id.label_info);
@@ -187,6 +206,7 @@ public class MainActivity extends AppCompatActivity
         stopCollectButton = findViewById(R.id.stop_button);
         automatedEventInfo = findViewById(R.id.automated_gesture_event);
 
+        stopCollectButton.setClickable(false);
         automatedEventInfo.setVisibility(View.GONE);
 
         getApplicationContext().deleteDatabase("CurInstSensorDB");
@@ -196,24 +216,36 @@ public class MainActivity extends AppCompatActivity
     @Override
     protected void onStart() {
         super.onStart();
-        if (gyroscope != null) {
+        if (gyroSwitchPref) {
             sensorManager.registerListener(this, gyroscope,
-                    SensorManager.SENSOR_DELAY_NORMAL);
+                    SensorManager.SENSOR_DELAY_UI);
+        }
+        if (accSwitchPref) {
+            sensorManager.registerListener(this, accelerometer,
+                    SensorManager.SENSOR_DELAY_UI);
         }
     }
 
     @Override
     protected void onPause() {
         super.onPause();
-        if (gyroscope != null) {
-            sensorManager.unregisterListener(this);
+        if (gyroSwitchPref) {
+            sensorManager.unregisterListener(this, gyroscope);
+        }
+        if (accSwitchPref) {
+            sensorManager.unregisterListener(this, accelerometer);
         }
     }
 
     @Override
     protected void onStop() {
         super.onStop();
-        sensorManager.unregisterListener(this);
+        if (gyroSwitchPref) {
+            sensorManager.unregisterListener(this, gyroscope);
+        }
+        if (accSwitchPref) {
+            sensorManager.unregisterListener(this, accelerometer);
+        }
     }
 
     @Override
@@ -276,6 +308,9 @@ public class MainActivity extends AppCompatActivity
         } else if (id == R.id.nav_build_model_info) {
             Intent getBuildModelIntent = new Intent(this, BuildModelActivity.class);
             startActivity(getBuildModelIntent);
+        } else if (id == R.id.nav_network_settings_info) {
+            Intent getNetworkSettingsIntent = new Intent(this, NetworkSettingsActivity.class);
+            startActivity(getNetworkSettingsIntent);
         }
 
         DrawerLayout drawer = findViewById(R.id.drawer_layout);
@@ -288,23 +323,54 @@ public class MainActivity extends AppCompatActivity
         int sensorType = event.sensor.getType();
         switch (sensorType) {
             case Sensor.TYPE_GYROSCOPE:
-                gyroscopeVal[0] = event.values[0];
-                gyroscopeVal[1] = event.values[1];
-                gyroscopeVal[2] = event.values[2];
+                System.arraycopy(event.values, 0, gyroscopeVal, 0, event.values.length);
                 timeStamp = event.timestamp;
                 gyroscopeInfo.setText(getResources().getString(
                         R.string.gyroscope_text, event.values[0],
                         event.values[1], event.values[2]));
-                if (!gesture.equals("")) {
-                    sensorDataDB.execSQL("INSERT INTO sensordata (timestamp, gyroscopeX, " +
-                            "gyroscopeY, gyroscopeZ, gesture" +
-                            ") VALUES " +
-                            "(" + timeStamp + ", " + gyroscopeVal[0] + ", " + gyroscopeVal[1] + ", "
-                            + gyroscopeVal[2] + ", '" + gesture + "');");
-                }
+                gyro = true;
                 break;
+            case Sensor.TYPE_ACCELEROMETER:
+                System.arraycopy(event.values, 0, acceleroVal, 0, event.values.length);
+                timeStamp = event.timestamp;
+                accelerometerInfo.setText(getResources().getString(
+                        R.string.accelerometer_text, event.values[0],
+                        event.values[1], event.values[2]));
+                accelero = true;
             default:
                 break;
+        }
+        if (gyroSwitchPref && accSwitchPref) {
+            if (collectStatus && !gesture.equals("") && gyro && accelero) {
+                sensorDataDB.execSQL("INSERT INTO sensordata (timestamp, gyroscopeX, " +
+                        "gyroscopeY, gyroscopeZ, acceleroX, acceleroY, acceleroZ, gesture" +
+                        ") VALUES " +
+                        "(" + timeStamp + ", " + gyroscopeVal[0] + ", " + gyroscopeVal[1] + ", "
+                        + gyroscopeVal[2] + ", " + acceleroVal[0] + ", " + acceleroVal[1] + ", "
+                        + acceleroVal[2] + ", '" + gesture + "');");
+                gyro = false;
+                accelero = false;
+            }
+        }
+        else if (gyroSwitchPref) {
+            if (collectStatus && !gesture.equals("") && gyro) {
+                sensorDataDB.execSQL("INSERT INTO sensordata (timestamp, gyroscopeX, " +
+                        "gyroscopeY, gyroscopeZ, gesture" +
+                        ") VALUES " +
+                        "(" + timeStamp + ", " + gyroscopeVal[0] + ", " + gyroscopeVal[1] + ", "
+                        + gyroscopeVal[2] + ", '" + gesture + "');");
+                gyro = false;
+            }
+        }
+        else if (accSwitchPref) {
+            if (collectStatus && !gesture.equals("") && accelero) {
+                sensorDataDB.execSQL("INSERT INTO sensordata (timestamp, " +
+                        "acceleroX, acceleroY, acceleroZ, gesture" +
+                        ") VALUES " +
+                        "(" + timeStamp + ", " + acceleroVal[0] + ", " + acceleroVal[1] + ", "
+                        + acceleroVal[2] + ", '" + gesture + "');");
+                accelero = false;
+            }
         }
     }
 
@@ -315,15 +381,47 @@ public class MainActivity extends AppCompatActivity
 
     private void createDatabase() {
         try {
-            sensorDataDB = this.openOrCreateDatabase("CurInstSensorDB", MODE_PRIVATE, null);
-            sensorDataDB.execSQL("CREATE TABLE IF NOT EXISTS sensordata " +
-                    "(id INTEGER primary key, timestamp REAL, gyroscopeX REAL, gyroscopeY REAL, " +
-                    "gyroscopeZ REAL, gesture TEXT);");
-            File outputFile = getApplicationContext().getDatabasePath("CurInstSensorDB");
-            if (outputFile.exists())
-                Toast.makeText(this, "Database created", Toast.LENGTH_SHORT).show();
-            else
-                Toast.makeText(this, "Database missing", Toast.LENGTH_SHORT).show();
+            if (gyroSwitchPref && accSwitchPref) {
+                sensorDataDB = this.openOrCreateDatabase("CurInstSensorDB", MODE_PRIVATE, null);
+                sensorDataDB.execSQL("CREATE TABLE IF NOT EXISTS sensordata " +
+                        "(id INTEGER primary key, timestamp REAL, gyroscopeX REAL, gyroscopeY REAL, " +
+                        "gyroscopeZ REAL, acceleroX REAL, acceleroY REAL, acceleroZ REAL, gesture TEXT);");
+                outputFile = getApplicationContext().getDatabasePath("CurInstSensorDB");
+                if (outputFile.exists())
+                    Toast.makeText(this, "Database created", Toast.LENGTH_SHORT).show();
+                else
+                    Toast.makeText(this, "Database missing", Toast.LENGTH_SHORT).show();
+            }
+            else if (gyroSwitchPref) {
+                sensorDataDB = this.openOrCreateDatabase("CurInstSensorDB", MODE_PRIVATE, null);
+                sensorDataDB.execSQL("CREATE TABLE IF NOT EXISTS sensordata " +
+                        "(id INTEGER primary key, timestamp REAL, gyroscopeX REAL, gyroscopeY REAL, " +
+                        "gyroscopeZ REAL, gesture TEXT);");
+                outputFile = getApplicationContext().getDatabasePath("CurInstSensorDB");
+                if (outputFile.exists())
+                    Toast.makeText(this, "Database created", Toast.LENGTH_SHORT).show();
+                else
+                    Toast.makeText(this, "Database missing", Toast.LENGTH_SHORT).show();
+            }
+            else if (accSwitchPref) {
+                sensorDataDB = this.openOrCreateDatabase("CurInstSensorDB", MODE_PRIVATE, null);
+                sensorDataDB.execSQL("CREATE TABLE IF NOT EXISTS sensordata " +
+                        "(id INTEGER primary key, timestamp REAL," +
+                        "acceleroX REAL, acceleroY REAL, acceleroZ REAL, gesture TEXT);");
+                outputFile = getApplicationContext().getDatabasePath("CurInstSensorDB");
+                if (outputFile.exists())
+                    Toast.makeText(this, "Database created", Toast.LENGTH_SHORT).show();
+                else
+                    Toast.makeText(this, "Database missing", Toast.LENGTH_SHORT).show();
+            }
+            else {
+                Toast.makeText(this,
+                        "No sensor chosen, database will not be created", Toast.LENGTH_LONG).show();
+                Toast.makeText(this,
+                        "Please choose to monitor a sensor in Settings", Toast.LENGTH_LONG).show();
+                //stopCollectButton.setClickable(false);
+                labelButton.setClickable(false);
+            }
         } catch (Exception e) {
             Log.e("CURINSTSENSORDB ERROR", "Error creating database");
         }
@@ -331,37 +429,37 @@ public class MainActivity extends AppCompatActivity
     }
 
     public void startCollect(View view) {
-        labelButton.setClickable(false);
-        startCollectButton.setClickable(false);
-        exportCSVButton.setClickable(false);
-        stopCollectButton.setClickable(true);
-        automatedEventInfo.setVisibility(View.VISIBLE);
-        Toast.makeText(this, "Please enter text to " +
-                        "put label for the sensor data",
-                Toast.LENGTH_LONG).show();
-        Random randomTime = new Random();
-        int randomTimeBound = randomTime.nextInt(5000) + 2000;
-        try {
-            timer = new Timer();
-            timerTask = new TimerTask() {
-                @Override
-                public void run() {
-                    runOnUiThread(new Runnable() {
-                        @Override
-                        public void run() {
-                            Random rand = new Random();
-                            int random = rand.nextInt(gestures.size());
-                            String g = gestures.get(random);
-                            automatedEventInfo.setText("Show gesture: " + gestures.get(random));
-                            gesture = g;
-                        }
-                    });
-                }
-            };
-            timer.schedule(timerTask, 0, randomTimeBound);
-        } catch (IllegalStateException e) {
-            Toast.makeText(this, "Some error occurs, please try again",
-                    Toast.LENGTH_SHORT).show();
+        if (!gestures.isEmpty()) {
+            labelButton.setClickable(false);
+            startCollectButton.setClickable(false);
+            exportCSVButton.setClickable(false);
+            stopCollectButton.setClickable(true);
+            automatedEventInfo.setVisibility(View.VISIBLE);
+            int randomTimeBound = new Random().nextInt(5000) + 1000;
+            try {
+                timer = new Timer();
+                timerTask = new TimerTask() {
+                    @Override
+                    public void run() {
+                        runOnUiThread(new Runnable() {
+                            @Override
+                            public void run() {
+                                Random rand = new Random();
+                                int random = rand.nextInt(gestures.size());
+                                gesture = gestures.get(random);
+                                automatedEventInfo.setText("Show gesture: " + gesture);
+                            }
+                        });
+                    }
+                };
+                timer.schedule(timerTask, 0, randomTimeBound);
+                collectStatus = true;
+            } catch (IllegalStateException e) {
+                Toast.makeText(this, "Some error occurs, please try again",
+                        Toast.LENGTH_SHORT).show();
+            }
+        } else {
+            Toast.makeText(this, "There is no gesture", Toast.LENGTH_SHORT).show();
         }
     }
 
@@ -371,15 +469,20 @@ public class MainActivity extends AppCompatActivity
         exportCSVButton.setClickable(true);
         stopCollectButton.setClickable(false);
         automatedEventInfo.setVisibility(View.GONE);
-        gesture = "";
         Toast.makeText(this, "Process stops now",
                 Toast.LENGTH_SHORT).show();
         timer.cancel();
+        collectStatus = false;
+        gesture = "";
     }
 
     public void labelOutput(View view) {
-        if (gestures.contains(labelInfo.getText().toString().toLowerCase())) {
-            Toast.makeText(this, "The label exists, please try others",
+        if ((labelInfo.getText().toString().toLowerCase()).equals("")) {
+            Toast.makeText(this, "Please fill in something",
+                    Toast.LENGTH_SHORT).show();
+        }
+        else if (gestures.contains(labelInfo.getText().toString().toLowerCase())) {
+            Toast.makeText(this, "Existing label",
                     Toast.LENGTH_SHORT).show();
         }
         else {
@@ -391,93 +494,117 @@ public class MainActivity extends AppCompatActivity
     }
 
     public void exportToCSV(View view) {
-        Cursor cur = sensorDataDB.rawQuery("SELECT * FROM sensordata", null);
-        cur.moveToFirst();
-        FileOutputStream outputStream;
-        File file = new File(getApplicationContext().getFilesDir(), "output.csv");
-        if (cur.getCount() > 0) {
-            try {
-                outputStream = new FileOutputStream(file);
-                do {
-                    String recordCount = cur.getString(0);
-                    String tStamp = cur.getString(1);
-                    String gyroX = cur.getString(2);
-                    String gyroY = cur.getString(3);
-                    String gyroZ = cur.getString(4);
-                    String gesture = cur.getString(5);
-                    outputStream.write(recordCount.getBytes());
-                    outputStream.write(",".getBytes());
-                    outputStream.write(tStamp.getBytes());
-                    outputStream.write(",".getBytes());
-                    outputStream.write(gyroX.getBytes());
-                    outputStream.write(",".getBytes());
-                    outputStream.write(gyroY.getBytes());
-                    outputStream.write(",".getBytes());
-                    outputStream.write(gyroZ.getBytes());
-                    outputStream.write(",".getBytes());
-                    outputStream.write(gesture.getBytes());
-                    outputStream.write("\n".getBytes());
-                } while (cur.moveToNext());
+        if (sensorDataDB != null) {
+            Cursor cur = sensorDataDB.rawQuery("SELECT * FROM sensordata", null);
+            cur.moveToFirst();
+            FileOutputStream outputStream;
+            File file = new File(getApplicationContext().getFilesDir(), "output.csv");
+            if (cur.getCount() > 0) {
+                try {
+                    outputStream = new FileOutputStream(file);
+                    if (gyroSwitchPref && accSwitchPref) {
+                        outputStream.write("No,Timestamp,GyroX,GyroY,GyroZ,AccX,AccY,AccZ,Gesture\n".getBytes());
+                    } else if (gyroSwitchPref) {
+                        outputStream.write("No,Timestamp,GyroX,GyroY,GyroZ,Gesture\n".getBytes());
+                    } else if (accSwitchPref) {
+                        outputStream.write("No,Timestamp,AccX,AccY,AccZ,Gesture\n".getBytes());
+                    }
+                    do {
+                        int columnIndex = 0;
+                        String recordCount = cur.getString(columnIndex++);
+                        String tStamp = cur.getString(columnIndex++);
+                        outputStream.write(recordCount.getBytes());
+                        outputStream.write(",".getBytes());
+                        outputStream.write(tStamp.getBytes());
+                        outputStream.write(",".getBytes());
+                        if (gyroSwitchPref) {
+                            String gyroX = cur.getString(columnIndex++);
+                            String gyroY = cur.getString(columnIndex++);
+                            String gyroZ = cur.getString(columnIndex++);
+                            outputStream.write(gyroX.getBytes());
+                            outputStream.write(",".getBytes());
+                            outputStream.write(gyroY.getBytes());
+                            outputStream.write(",".getBytes());
+                            outputStream.write(gyroZ.getBytes());
+                            outputStream.write(",".getBytes());
+                        }
+                        if (accSwitchPref) {
+                            String acceleroX = cur.getString(columnIndex++);
+                            String acceleroY = cur.getString(columnIndex++);
+                            String acceleroZ = cur.getString(columnIndex++);
+                            outputStream.write(acceleroX.getBytes());
+                            outputStream.write(",".getBytes());
+                            outputStream.write(acceleroY.getBytes());
+                            outputStream.write(",".getBytes());
+                            outputStream.write(acceleroZ.getBytes());
+                            outputStream.write(",".getBytes());
+                        }
+                        String gesture = cur.getString(columnIndex++);
+                        outputStream.write(gesture.getBytes());
+                        outputStream.write("\n".getBytes());
+                    } while (cur.moveToNext());
 
-                outputStream.flush();
-                outputStream.close();
-                Toast.makeText(this, "CSV file created and uploaded to AWS S3" +
-                        "\n" + file.getAbsolutePath(), Toast.LENGTH_LONG).show();
+                    outputStream.flush();
+                    outputStream.close();
+                    cur.close();
+                    Toast.makeText(this, "CSV file created and uploaded to AWS S3" +
+                            "\n" + file.getAbsolutePath(), Toast.LENGTH_LONG).show();
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
             }
-            catch (Exception e) {
-                e.printStackTrace();
+            if (file.exists()) {
+                AmazonS3Client s3client = new AmazonS3Client(credentialsProvider);
+                TransferUtility transferUtility =
+                        TransferUtility.builder()
+                                .context(getApplicationContext())
+                                .awsConfiguration(configuration)
+                                .s3Client(s3client)
+                                .build();
+                Date date = new Date();
+                String sdf = new SimpleDateFormat("yyyy-MM-dd hh:mm:ss a").format(date);
+                TransferObserver uploadObserver = transferUtility.upload(
+                        androidID + "/" + sdf + ".csv",
+                        file);
+
+                // Attach a listener to the observer to get state update and progress notifications
+                uploadObserver.setTransferListener(new TransferListener() {
+                    @Override
+                    public void onStateChanged(int id, TransferState state) {
+                        if (TransferState.COMPLETED == state) {
+                            // Handle a completed upload.
+                        }
+                    }
+
+                    @Override
+                    public void onProgressChanged(int id, long bytesCurrent, long bytesTotal) {
+                        float percentDonef = ((float) bytesCurrent / (float) bytesTotal) * 100;
+                        int percentDone = (int) percentDonef;
+
+                        Log.d("YourActivity", "ID:" + id + " bytesCurrent: " + bytesCurrent
+                                + " bytesTotal: " + bytesTotal + " " + percentDone + "%");
+                    }
+
+                    @Override
+                    public void onError(int id, Exception ex) {
+                        // Handle errors
+                    }
+                });
+
+                // If you prefer to poll for the data, instead of attaching a
+                // listener, check for the state and progress in the observer.
+                if (TransferState.COMPLETED == uploadObserver.getState()) {
+                    // Handle a completed upload.
+                }
+
+                Log.d("YourActivity", "Bytes Transferred: " + uploadObserver.getBytesTransferred());
+                Log.d("YourActivity", "Bytes Total: " + uploadObserver.getBytesTotal());
+            }
+            else {
+                Toast.makeText(this, "File does not exist", Toast.LENGTH_SHORT).show();
             }
         }
         else
-            Toast.makeText(this, "There are no result", Toast.LENGTH_SHORT).show();
-        cur.close();
-
-        if (file.exists()) {
-            AmazonS3Client s3client = new AmazonS3Client(credentialsProvider);
-            TransferUtility transferUtility =
-                    TransferUtility.builder()
-                            .context(getApplicationContext())
-                            .awsConfiguration(configuration)
-                            .s3Client(s3client)
-                    .build();
-            Date date = new Date();
-            String sdf = new SimpleDateFormat("yyyy-MM-dd hh:mm:ss a").format(date);
-            TransferObserver uploadObserver = transferUtility.upload(
-                    androidID + "/" + sdf + ".csv",
-                    file);
-
-            // Attach a listener to the observer to get state update and progress notifications
-            uploadObserver.setTransferListener(new TransferListener() {
-                @Override
-                public void onStateChanged(int id, TransferState state) {
-                    if (TransferState.COMPLETED == state) {
-                        // Handle a completed upload.
-                    }
-                }
-
-                @Override
-                public void onProgressChanged(int id, long bytesCurrent, long bytesTotal) {
-                    float percentDonef = ((float) bytesCurrent / (float) bytesTotal) * 100;
-                    int percentDone = (int) percentDonef;
-
-                    Log.d("YourActivity", "ID:" + id + " bytesCurrent: " + bytesCurrent
-                            + " bytesTotal: " + bytesTotal + " " + percentDone + "%");
-                }
-
-                @Override
-                public void onError(int id, Exception ex) {
-                    // Handle errors
-                }
-            });
-
-            // If you prefer to poll for the data, instead of attaching a
-            // listener, check for the state and progress in the observer.
-            if (TransferState.COMPLETED == uploadObserver.getState()) {
-                // Handle a completed upload.
-            }
-
-            Log.d("YourActivity", "Bytes Transferred: " + uploadObserver.getBytesTransferred());
-            Log.d("YourActivity", "Bytes Total: " + uploadObserver.getBytesTotal());
-        }
+            Toast.makeText(this, "No database created", Toast.LENGTH_SHORT).show();
     }
 }

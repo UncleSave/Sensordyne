@@ -18,6 +18,16 @@
         android:textColor="#000"
         android:textSize="21sp" />
 
+    <TextView
+        android:id="@+id/accelerometer_info"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        app:layout_constraintLeft_toLeftOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/gyroscope_info"
+        android:text="@string/accelerometer_text"
+        android:textColor="#000"
+        android:textSize="21sp" />
+
     <Button
         android:id="@+id/export_button"
         android:layout_width="wrap_content"
@@ -26,7 +36,7 @@
         android:clickable="false"
         android:onClick="exportToCSV"
         android:text="@string/export_to_csv_format"
-        app:layout_constraintTop_toBottomOf="@+id/gyroscope_info" />
+        app:layout_constraintTop_toBottomOf="@+id/accelerometer_info" />
 
     <TextView
         android:id="@+id/label_instruct"
@@ -34,7 +44,7 @@
         android:layout_height="wrap_content"
         app:layout_constraintLeft_toLeftOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/export_button"
-        android:text="Please enter your label at the line below:"
+        android:text="@string/please_enter_your_label_at_the_line_below"
         android:textColor="#000"
         android:textSize="21sp" />
 
@@ -44,7 +54,7 @@
         android:layout_height="wrap_content"
         app:layout_constraintLeft_toLeftOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/label_instruct"
-        android:text="Ex: left"
+        android:hint="@string/ex_left"
         android:inputType="text"
         android:textColor="#000"
         android:textSize="21sp" />
@@ -54,6 +64,7 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:clickable="true"
+        android:focusable="false"
         android:onClick="labelOutput"
         android:text="@string/label"
         app:layout_constraintTop_toBottomOf="@+id/label_info" />
@@ -64,7 +75,7 @@
         android:layout_height="wrap_content"
         app:layout_constraintLeft_toLeftOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/label_button"
-        android:text="List of labels: "
+        android:text="@string/list_of_labels"
         android:textColor="#000"
         android:textSize="21sp" />
 
@@ -74,7 +85,7 @@
         android:layout_height="wrap_content"
         android:layout_marginStart="104dp"
         android:clickable="true"
-        android:text="Start collect"
+        android:text="@string/start_collect"
         android:onClick="startCollect"
         app:layout_constraintTop_toBottomOf="@+id/label_list_info" />
 
@@ -95,7 +106,7 @@
         android:layout_height="wrap_content"
         app:layout_constraintLeft_toLeftOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/stop_button"
-        android:text="Show gesture: "
+        android:text="@string/show_gesture"
         android:textColor="#000"
         android:textSize="21sp" />
 

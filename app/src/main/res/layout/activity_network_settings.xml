@@ -1,0 +1,150 @@
+<?xml version="1.0" encoding="utf-8"?>
+<android.support.constraint.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:padding="15dp"
+    tools:context=".NetworkSettingsActivity">
+
+    <TextView
+        android:id="@+id/optimizer_info"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:paddingBottom="5dp"
+        android:text="@string/optimizer"
+        android:textColor="#000"
+        android:textSize="21sp"
+        app:layout_constraintLeft_toLeftOf="parent" />
+
+    <Spinner
+        android:id="@+id/optimizer_input"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:paddingBottom="5dp"
+        android:textColor="#000"
+        android:textSize="21sp"
+        app:layout_constraintLeft_toRightOf="@+id/optimizer_info" />
+
+    <TextView
+        android:id="@+id/loss_info"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:paddingBottom="5dp"
+        android:text="@string/loss_function"
+        android:textColor="#000"
+        android:textSize="21sp"
+        app:layout_constraintLeft_toLeftOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/optimizer_info" />
+
+    <Spinner
+        android:id="@+id/loss_input"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:paddingBottom="5dp"
+        android:textColor="#000"
+        android:textSize="21sp"
+        app:layout_constraintLeft_toRightOf="@+id/loss_info"
+        app:layout_constraintTop_toBottomOf="@+id/optimizer_info" />
+
+    <TextView
+        android:id="@+id/dropout_info"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:paddingBottom="5dp"
+        android:text="@string/dropout"
+        android:textColor="#000"
+        android:textSize="21sp"
+        app:layout_constraintLeft_toLeftOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/loss_info" />
+
+    <EditText
+        android:id="@+id/dropout_input"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:inputType="numberDecimal"
+        android:paddingTop="0dp"
+        android:text="@string/dropout_default_value"
+        android:textColor="#000"
+        android:textSize="21sp"
+        app:layout_constraintLeft_toRightOf="@id/dropout_info"
+        app:layout_constraintTop_toBottomOf="@+id/loss_info" />
+
+    <TextView
+        android:id="@+id/batchsize_info"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:paddingBottom="5dp"
+        android:text="@string/batch_size"
+        android:textColor="#000"
+        android:textSize="21sp"
+        app:layout_constraintLeft_toLeftOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/dropout_info" />
+
+    <EditText
+        android:id="@+id/batchsize_input"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:inputType="number"
+        android:paddingTop="0dp"
+        android:text="@string/batchsize_default_value"
+        android:textColor="#000"
+        android:textSize="21sp"
+        app:layout_constraintLeft_toRightOf="@id/batchsize_info"
+        app:layout_constraintTop_toBottomOf="@+id/dropout_info" />
+
+    <TextView
+        android:id="@+id/epoch_info"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:paddingBottom="5dp"
+        android:text="@string/epoch"
+        android:textColor="#000"
+        android:textSize="21sp"
+        app:layout_constraintLeft_toLeftOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/batchsize_info" />
+
+    <EditText
+        android:id="@+id/epoch_input"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:inputType="number"
+        android:paddingTop="0dp"
+        android:text="@string/epoch_default_value"
+        android:textColor="#000"
+        android:textSize="21sp"
+        app:layout_constraintLeft_toRightOf="@id/epoch_info"
+        app:layout_constraintTop_toBottomOf="@+id/batchsize_info" />
+
+    <TextView
+        android:id="@+id/activation_info"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:paddingBottom="5dp"
+        android:text="@string/activation_function"
+        android:textColor="#000"
+        android:textSize="21sp"
+        app:layout_constraintLeft_toLeftOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/epoch_info" />
+
+    <Spinner
+        android:id="@+id/activation_input"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:paddingBottom="5dp"
+        android:textColor="#000"
+        android:textSize="21sp"
+        app:layout_constraintLeft_toRightOf="@+id/activation_info"
+        app:layout_constraintTop_toBottomOf="@+id/epoch_info" />
+
+    <Button
+        android:id="@+id/save_button"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:clickable="true"
+        android:focusable="false"
+        android:onClick="saveSettings"
+        android:text="@string/save"
+        app:layout_constraintTop_toBottomOf="@+id/activation_info" />
+
+</android.support.constraint.ConstraintLayout>

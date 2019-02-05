@@ -35,22 +35,28 @@ public class BuildModelActivity extends AppCompatActivity {
         // Checks whether wifi or mobile data is connected
         ConnectivityManager cm =
                 (ConnectivityManager)this.getSystemService(Context.CONNECTIVITY_SERVICE);
-        NetworkInfo activeNetwork = cm.getActiveNetworkInfo();
-        boolean isConnected = activeNetwork != null &&
-                activeNetwork.isConnectedOrConnecting();
-        if (!isConnected) {
-            AlertDialog.Builder alertDialogBuilder = new AlertDialog.Builder(this);
-            alertDialogBuilder.setMessage("Please enable wifi or mobile data");
-            alertDialogBuilder.setPositiveButton("Close",
-                    new DialogInterface.OnClickListener() {
-                        @Override
-                        public void onClick(DialogInterface arg0, int arg1) {
-                            finish();
-                        }
-                    });
-            AlertDialog alertDialog = alertDialogBuilder.create();
-            alertDialog.show();
+        try {
+            NetworkInfo activeNetwork = cm.getActiveNetworkInfo();
+            boolean isConnected = activeNetwork != null &&
+                    activeNetwork.isConnectedOrConnecting();
+            if (!isConnected) {
+                AlertDialog.Builder alertDialogBuilder = new AlertDialog.Builder(this);
+                alertDialogBuilder.setMessage("Please enable wifi or mobile data");
+                alertDialogBuilder.setPositiveButton("Close",
+                        new DialogInterface.OnClickListener() {
+                            @Override
+                            public void onClick(DialogInterface arg0, int arg1) {
+                                finish();
+                            }
+                        });
+                AlertDialog alertDialog = alertDialogBuilder.create();
+                alertDialog.show();
+            }
         }
+        catch (NullPointerException e) {
+            e.printStackTrace();
+        }
+
 
         androidID = Settings.Secure.getString(getContentResolver(),
                 Settings.Secure.ANDROID_ID);
@@ -72,7 +78,9 @@ public class BuildModelActivity extends AppCompatActivity {
                 Request request = new Request.Builder().url(params[0].getUrllink() + params[0].getAndroidID()).build();
                 try {
                     return okHttpClient.newCall(request).execute().body().string();
-                } catch (IOException e) { return "IOException occurs"; }
+                }
+                catch (IOException e) { return "IOException occurs"; }
+                catch (NullPointerException e) { return "NullPointerException occurs"; }
             }
 
             @Override
@@ -93,6 +101,6 @@ public class BuildModelActivity extends AppCompatActivity {
             protected void onProgressUpdate(Void... values) {
                 super.onProgressUpdate(values);
             }
-            }.execute(request);
+        }.execute(request);
     }
 }

@@ -16,6 +16,9 @@
         <item
             android:id="@+id/nav_build_model_info"
             android:title="@string/build_model" />
+        <item
+            android:id="@+id/nav_network_settings_info"
+            android:title="@string/neural_network_settings" />
     </group>
 
 </menu>
