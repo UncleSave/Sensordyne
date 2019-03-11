@@ -4,9 +4,9 @@
     <string name="navigation_drawer_close">Close navigation drawer</string>
 
     <!-- Strings related to Activity Drawer -->
-    <string name="delete_dataset">Delete Dataset</string>
+    <string name="manage_file">Manage File</string>
     <string name="build_model">Build Model</string>
-    <string name="neural_network_settings">Neural Network settings</string>
+    <string name="neural_network_settings">Model and Neural Network settings</string>
 
     <!-- Strings related to Options Menu -->
     <string name="action_settings">Settings</string>
@@ -18,15 +18,17 @@
     <string name="gyroscope_text">Gyroscope: %1$.3f rad/s %2$.3f rad/s %3$.3f rad/s</string>
     <string name="device_info">Device Info</string>
     <string name="placeholder">(placeholder)</string>
-    <string name="export_to_csv_format">Export to CSV format</string>
+    <string name="export_to_cloud_format">Export to cloud</string>
     <string name="stop_collect">Stop collect</string>
-    <string name="label">Label</string>
-    <string name="delete_csv_file">Delete csv file</string>
+    <string name="add_label">Add</string>
+    <string name="clear_label">Clear</string>
+    <string name="delete_label">Delete</string>
+    <string name="delete_csv_file">Delete CSV file</string>
     <string name="please_enter_your_label_at_the_line_below">Please enter your label at the line below:</string>
     <string name="ex_left">Ex: left</string>
     <string name="list_of_labels">List of labels:</string>
     <string name="start_collect">Start collect</string>
-    <string name="show_gesture">Show gesture:</string>
+    <string name="show_label">Show label:</string>
 
     <!-- Strings related to Settings -->
     <string name="settings_gyroscope_data_summary">Keep track of the gyroscope data</string>
@@ -51,10 +53,15 @@
     <string name="loss_function">Loss function:</string>
     <string name="dropout">Dropout:</string>
     <string name="epoch">Epoch:</string>
-    <string name="batch_size">Batch Size:</string>
+    <string name="batch_size">Batch size:</string>
     <string name="dropout_default_value">0.16</string>
     <string name="epoch_default_value">5</string>
     <string name="batchsize_default_value">5</string>
-
+    <string name="predict_label">Predict label</string>
+    <string name="time_step">Time step:</string>
+    <string name="timestep_default_value">20</string>
+    <string name="hidden_layer">Hidden Layer:</string>
+    <string name="hiddenlayer_default_value">8</string>
+    <string name="download">Download</string>
 
 </resources>

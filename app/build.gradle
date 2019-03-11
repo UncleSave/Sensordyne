@@ -4,7 +4,7 @@ android {
     compileSdkVersion 27
     defaultConfig {
         applicationId "unclesave.example.com.test2"
-        minSdkVersion 25
+        minSdkVersion 21
         targetSdkVersion 27
         versionCode 1
         versionName "1.0"
@@ -42,4 +42,5 @@ dependencies {
     implementation('com.amazonaws:aws-android-sdk-mobile-client:2.6.+@aar') { transitive = true }
     implementation 'com.amazonaws:aws-android-sdk-apigateway-core:2.6.+'
     implementation 'com.squareup.okhttp3:okhttp:3.11.0'
+    implementation 'org.tensorflow:tensorflow-android:+'
 }

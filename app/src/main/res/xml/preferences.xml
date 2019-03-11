@@ -9,7 +9,49 @@
     <android.support.v7.preference.SwitchPreferenceCompat
         android:defaultValue="true"
         android:key="accelerometer_switch"
-        android:summary="@string/settings_accelerometer_data_summary"
+        android:summary="Keep track of the accelerometer data"
         android:title="@string/settings_accelerometer_data_title" />
-
+    <android.support.v7.preference.SwitchPreferenceCompat
+        android:defaultValue="true"
+        android:key="magnetometer_switch"
+        android:summary="Keep track of the magnetic field data"
+        android:title="Magnetic field data" />
+    <android.support.v7.preference.SwitchPreferenceCompat
+        android:defaultValue="true"
+        android:key="orientation_switch"
+        android:summary="Keep track of the device orientation data"
+        android:title="Device orientation data" />
+    <android.support.v7.preference.SwitchPreferenceCompat
+        android:defaultValue="true"
+        android:key="gravity_switch"
+        android:summary="Keep track of the gravity data"
+        android:title="Gravity data" />
+    <unclesave.example.com.test2.IntEditTextPreference
+        android:defaultValue="4000"
+        android:key="time_label_interval"
+        android:numeric="integer"
+        android:selectAllOnFocus="true"
+        android:singleLine="true"
+        android:summary="Set the label interval for collection process"
+        android:title="Label interval (ms)" />
+    <unclesave.example.com.test2.IntEditTextPreference
+        android:defaultValue="20"
+        android:key="time_logging_interval"
+        android:numeric="integer"
+        android:selectAllOnFocus="true"
+        android:singleLine="true"
+        android:summary="Set the logging interval for collection process"
+        android:title="Log data interval (ms)" />
+    <ListPreference
+        android:key="collect_mode"
+        android:defaultValue="Turn"
+        android:entries="@array/collect_mode"
+        android:entryValues="@array/collect_mode"
+        android:summary="Select collect mode"
+        android:title="Collect mode" />
+    <android.support.v7.preference.SwitchPreferenceCompat
+        android:key="texttospeech_switch"
+        android:defaultValue="true"
+        android:summary="Enable text to speech in collection process"
+        android:title="Text-to-speech" />
 </PreferenceScreen>

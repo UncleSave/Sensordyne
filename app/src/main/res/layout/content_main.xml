@@ -9,6 +9,7 @@
     tools:context=".MainActivity"
     tools:showIn="@layout/app_bar_main">
 
+    <!--
     <TextView
         android:id="@+id/gyroscope_info"
         android:layout_width="wrap_content"
@@ -27,6 +28,7 @@
         android:text="@string/accelerometer_text"
         android:textColor="#000"
         android:textSize="21sp" />
+    !-->
 
     <Button
         android:id="@+id/export_button"
@@ -34,9 +36,17 @@
         android:layout_height="wrap_content"
         android:layout_marginStart="104dp"
         android:clickable="false"
-        android:onClick="exportToCSV"
-        android:text="@string/export_to_csv_format"
-        app:layout_constraintTop_toBottomOf="@+id/accelerometer_info" />
+        android:onClick="exportToCloud"
+        android:text="@string/export_to_cloud_format" />
+
+    <Button
+        android:id="@+id/local_csv_button"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:clickable="false"
+        android:onClick="getLocalCSV"
+        android:text="Get local CSV"
+        app:layout_constraintLeft_toRightOf="@+id/export_button" />
 
     <TextView
         android:id="@+id/label_instruct"
@@ -60,13 +70,35 @@
         android:textSize="21sp" />
 
     <Button
-        android:id="@+id/label_button"
+        android:id="@+id/add_label_button"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:clickable="true"
         android:focusable="false"
         android:onClick="labelOutput"
-        android:text="@string/label"
+        android:text="@string/add_label"
+        app:layout_constraintTop_toBottomOf="@+id/label_info" />
+
+    <Button
+        android:id="@+id/delete_label_button"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="104dp"
+        android:clickable="false"
+        android:text="@string/delete_label"
+        android:onClick="deleteLabel"
+        app:layout_constraintLeft_toLeftOf="@+id/add_label_button"
+        app:layout_constraintTop_toBottomOf="@+id/label_info" />
+
+    <Button
+        android:id="@+id/clear_label_button"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="104dp"
+        android:clickable="false"
+        android:text="@string/clear_label"
+        android:onClick="clearLabel"
+        app:layout_constraintLeft_toLeftOf="@+id/delete_label_button"
         app:layout_constraintTop_toBottomOf="@+id/label_info" />
 
     <TextView
@@ -74,39 +106,38 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         app:layout_constraintLeft_toLeftOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/label_button"
+        app:layout_constraintTop_toBottomOf="@+id/add_label_button"
         android:text="@string/list_of_labels"
         android:textColor="#000"
         android:textSize="21sp" />
 
     <Button
-        android:id="@+id/start_button"
+        android:id="@+id/start_collect_button"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginStart="104dp"
         android:clickable="true"
         android:text="@string/start_collect"
         android:onClick="startCollect"
         app:layout_constraintTop_toBottomOf="@+id/label_list_info" />
 
     <Button
-        android:id="@+id/stop_button"
+        android:id="@+id/stop_collect_button"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginStart="148dp"
         android:clickable="false"
         android:text="@string/stop_collect"
         android:onClick="stopCollect"
-        app:layout_constraintLeft_toLeftOf="@id/start_button"
+        app:layout_constraintLeft_toLeftOf="@+id/start_collect_button"
         app:layout_constraintTop_toBottomOf="@+id/label_list_info" />
 
     <TextView
-        android:id="@+id/automated_gesture_event"
+        android:id="@+id/automated_label_event"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         app:layout_constraintLeft_toLeftOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/stop_button"
-        android:text="@string/show_gesture"
+        app:layout_constraintTop_toBottomOf="@+id/stop_collect_button"
+        android:text="@string/show_label"
         android:textColor="#000"
         android:textSize="21sp" />
 

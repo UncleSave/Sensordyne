@@ -8,6 +8,129 @@
     tools:context=".NetworkSettingsActivity">
 
     <TextView
+        android:id="@+id/model_config_title"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:paddingBottom="5dp"
+        android:text="Model Settings"
+        android:textColor="#000"
+        android:textSize="21sp"
+        app:layout_constraintLeft_toLeftOf="parent" />
+
+    <TextView
+        android:id="@+id/layer_type_info"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:paddingBottom="5dp"
+        android:text="Layer type:"
+        android:textColor="#000"
+        android:textSize="21sp"
+        app:layout_constraintLeft_toLeftOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/model_config_title" />
+
+    <Spinner
+        android:id="@+id/layer_type_input"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:entries="@array/layer_type"
+        android:entryValues="@array/layer_type"
+        android:paddingBottom="5dp"
+        android:textColor="#000"
+        android:textSize="21sp"
+        app:layout_constraintLeft_toRightOf="@+id/layer_type_info"
+        app:layout_constraintTop_toBottomOf="@+id/model_config_title" />
+
+    <TextView
+        android:id="@+id/unit_info"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:paddingBottom="5dp"
+        android:text="Number of unit:"
+        android:textColor="#000"
+        android:textSize="21sp"
+        app:layout_constraintLeft_toLeftOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/layer_type_info" />
+
+    <EditText
+        android:id="@+id/unit_input"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:inputType="number"
+        android:paddingTop="0dp"
+        android:hint="64"
+        android:textColor="#000"
+        android:textSize="21sp"
+        app:layout_constraintLeft_toRightOf="@id/unit_info"
+        app:layout_constraintTop_toBottomOf="@+id/layer_type_info" />
+
+    <TextView
+        android:id="@+id/input_shape_info"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:paddingBottom="5dp"
+        android:text="Input shape info:"
+        android:textColor="#000"
+        android:textSize="21sp"
+        app:layout_constraintLeft_toLeftOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/unit_info" />
+
+    <EditText
+        android:id="@+id/input_shape_input"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:inputType="text"
+        android:paddingTop="0dp"
+        android:hint="(20, 2)"
+        android:textColor="#000"
+        android:textSize="21sp"
+        app:layout_constraintLeft_toRightOf="@id/input_shape_info"
+        app:layout_constraintTop_toBottomOf="@+id/unit_info" />
+
+    <TextView
+        android:id="@+id/activation_info"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:paddingBottom="5dp"
+        android:text="@string/activation_function"
+        android:textColor="#000"
+        android:textSize="21sp"
+        app:layout_constraintLeft_toLeftOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/input_shape_info" />
+
+    <Spinner
+        android:id="@+id/activation_input"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:paddingBottom="5dp"
+        android:textColor="#000"
+        android:textSize="21sp"
+        app:layout_constraintLeft_toRightOf="@+id/activation_info"
+        app:layout_constraintTop_toBottomOf="@+id/input_shape_info" />
+
+    <TextView
+        android:id="@+id/dropout_info"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:paddingBottom="5dp"
+        android:text="@string/dropout"
+        android:textColor="#000"
+        android:textSize="21sp"
+        app:layout_constraintLeft_toLeftOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/activation_info" />
+
+    <EditText
+        android:id="@+id/dropout_input"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:inputType="numberDecimal"
+        android:paddingTop="0dp"
+        android:hint="@string/dropout_default_value"
+        android:textColor="#000"
+        android:textSize="21sp"
+        app:layout_constraintLeft_toRightOf="@id/dropout_info"
+        app:layout_constraintTop_toBottomOf="@+id/activation_info" />
+
+    <TextView
         android:id="@+id/optimizer_info"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
@@ -15,7 +138,8 @@
         android:text="@string/optimizer"
         android:textColor="#000"
         android:textSize="21sp"
-        app:layout_constraintLeft_toLeftOf="parent" />
+        app:layout_constraintLeft_toLeftOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/dropout_info" />
 
     <Spinner
         android:id="@+id/optimizer_input"
@@ -24,7 +148,8 @@
         android:paddingBottom="5dp"
         android:textColor="#000"
         android:textSize="21sp"
-        app:layout_constraintLeft_toRightOf="@+id/optimizer_info" />
+        app:layout_constraintLeft_toRightOf="@+id/optimizer_info"
+        app:layout_constraintTop_toBottomOf="@+id/dropout_info"/>
 
     <TextView
         android:id="@+id/loss_info"
@@ -47,28 +172,37 @@
         app:layout_constraintLeft_toRightOf="@+id/loss_info"
         app:layout_constraintTop_toBottomOf="@+id/optimizer_info" />
 
+    <Button
+        android:id="@+id/add_layer_button"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:clickable="true"
+        android:focusable="false"
+        android:onClick="addLayer"
+        android:text="Add Layer to Model"
+        app:layout_constraintTop_toBottomOf="@+id/loss_info" />
+
+    <Button
+        android:id="@+id/save_configured_model_button"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:clickable="true"
+        android:focusable="false"
+        android:onClick="saveModel"
+        android:text="Save Model"
+        app:layout_constraintLeft_toRightOf="@+id/add_layer_button"
+        app:layout_constraintTop_toBottomOf="@+id/loss_info" />
+
     <TextView
-        android:id="@+id/dropout_info"
+        android:id="@+id/training_config_title"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:paddingBottom="5dp"
-        android:text="@string/dropout"
+        android:text="Training settings"
         android:textColor="#000"
         android:textSize="21sp"
         app:layout_constraintLeft_toLeftOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/loss_info" />
-
-    <EditText
-        android:id="@+id/dropout_input"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:inputType="numberDecimal"
-        android:paddingTop="0dp"
-        android:text="@string/dropout_default_value"
-        android:textColor="#000"
-        android:textSize="21sp"
-        app:layout_constraintLeft_toRightOf="@id/dropout_info"
-        app:layout_constraintTop_toBottomOf="@+id/loss_info" />
+        app:layout_constraintTop_toBottomOf="@+id/save_configured_model_button"/>
 
     <TextView
         android:id="@+id/batchsize_info"
@@ -79,7 +213,7 @@
         android:textColor="#000"
         android:textSize="21sp"
         app:layout_constraintLeft_toLeftOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/dropout_info" />
+        app:layout_constraintTop_toBottomOf="@+id/training_config_title" />
 
     <EditText
         android:id="@+id/batchsize_input"
@@ -87,11 +221,11 @@
         android:layout_height="wrap_content"
         android:inputType="number"
         android:paddingTop="0dp"
-        android:text="@string/batchsize_default_value"
+        android:hint="@string/batchsize_default_value"
         android:textColor="#000"
         android:textSize="21sp"
         app:layout_constraintLeft_toRightOf="@id/batchsize_info"
-        app:layout_constraintTop_toBottomOf="@+id/dropout_info" />
+        app:layout_constraintTop_toBottomOf="@+id/training_config_title" />
 
     <TextView
         android:id="@+id/epoch_info"
@@ -110,31 +244,34 @@
         android:layout_height="wrap_content"
         android:inputType="number"
         android:paddingTop="0dp"
-        android:text="@string/epoch_default_value"
+        android:hint="@string/epoch_default_value"
         android:textColor="#000"
         android:textSize="21sp"
         app:layout_constraintLeft_toRightOf="@id/epoch_info"
         app:layout_constraintTop_toBottomOf="@+id/batchsize_info" />
 
+
     <TextView
-        android:id="@+id/activation_info"
+        android:id="@+id/timesteps_info"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:paddingBottom="5dp"
-        android:text="@string/activation_function"
+        android:text="@string/time_step"
         android:textColor="#000"
         android:textSize="21sp"
         app:layout_constraintLeft_toLeftOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/epoch_info" />
 
-    <Spinner
-        android:id="@+id/activation_input"
+    <EditText
+        android:id="@+id/timesteps_input"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:paddingBottom="5dp"
+        android:inputType="number"
+        android:paddingTop="0dp"
+        android:hint="@string/timestep_default_value"
         android:textColor="#000"
         android:textSize="21sp"
-        app:layout_constraintLeft_toRightOf="@+id/activation_info"
+        app:layout_constraintLeft_toRightOf="@id/timesteps_info"
         app:layout_constraintTop_toBottomOf="@+id/epoch_info" />
 
     <Button
@@ -144,7 +281,8 @@
         android:clickable="true"
         android:focusable="false"
         android:onClick="saveSettings"
-        android:text="@string/save"
-        app:layout_constraintTop_toBottomOf="@+id/activation_info" />
+        android:text="Save Settings"
+        app:layout_constraintTop_toBottomOf="@+id/timesteps_info" />
+
 
 </android.support.constraint.ConstraintLayout>

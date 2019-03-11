@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <array name="collect_mode">
+        <item>Turn</item>
+        <item>Random</item>
+    </array>
+
+    <array name="layer_type">
+        <item>Dense</item>
+        <item>LTSM</item>
+    </array>
+</resources>

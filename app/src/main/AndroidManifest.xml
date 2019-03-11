@@ -8,6 +8,7 @@
     <uses-permission android:name="android.permission.BODY_SENSORS" />
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
     <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION"/>
 
     <application
         android:allowBackup="true"
@@ -30,7 +31,6 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
-
         <activity
             android:name=".CheckSensorActivity"
             android:label="Check Sensor"
@@ -48,7 +48,7 @@
                 android:value="unclesave.example.com.test2.MainActivity" />
         </activity>
         <activity
-            android:name=".DeleteCSVActivity"
+            android:name=".ManageFileActivity"
             android:label="Delete Dataset"
             android:parentActivityName=".MainActivity">
             <meta-data
@@ -63,19 +63,29 @@
                 android:name="android.support.PARENT_ACTIVITY"
                 android:value="unclesave.example.com.test2.MainActivity" />
         </activity>
-        <activity android:name=".NetworkSettingsActivity"
-            android:label="Neural Network Settings"
+        <activity
+            android:name=".NetworkSettingsActivity"
+            android:label="Model and Neural Network Settings"
             android:parentActivityName=".MainActivity">
             <meta-data
                 android:name="android.support.PARENT_ACTIVITY"
                 android:value="unclesave.example.com.test2.MainActivity" />
         </activity>
-        <activity android:name=".SettingsActivity"
+        <activity
+            android:name=".SettingsActivity"
             android:label="Settings"
             android:parentActivityName=".MainActivity">
             <meta-data
                 android:name="android.support.PARENT_ACTIVITY"
-                android:value=".MainActivity"/>
+                android:value=".MainActivity" />
+        </activity>
+        <activity
+            android:name=".PredictLabelActivity"
+            android:label="Predict Gesture"
+            android:parentActivityName=".PredictLabelActivity">
+            <meta-data
+                android:name="android.support.PARENT_ACTIVITY"
+                android:value=".MainActivity" />
         </activity>
     </application>
 
