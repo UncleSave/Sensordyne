@@ -26,6 +26,11 @@
         android:key="gravity_switch"
         android:summary="Keep track of the gravity data"
         android:title="Gravity data" />
+    <android.support.v7.preference.SwitchPreferenceCompat
+        android:defaultValue="true"
+        android:key="linear_accelerometer_switch"
+        android:summary="Keep track of the linear accelerometer data"
+        android:title="Linear accelerometer data" />
     <unclesave.example.com.test2.IntEditTextPreference
         android:defaultValue="4000"
         android:key="time_label_interval"
@@ -33,7 +38,7 @@
         android:selectAllOnFocus="true"
         android:singleLine="true"
         android:summary="Set the label interval for collection process"
-        android:title="Label interval (ms)" />
+        android:title="Label interval (millisecond)" />
     <unclesave.example.com.test2.IntEditTextPreference
         android:defaultValue="20"
         android:key="time_logging_interval"
@@ -41,7 +46,15 @@
         android:selectAllOnFocus="true"
         android:singleLine="true"
         android:summary="Set the logging interval for collection process"
-        android:title="Log data interval (ms)" />
+        android:title="Log data interval (millisecond)" />
+    <unclesave.example.com.test2.IntEditTextPreference
+        android:defaultValue="5000"
+        android:key="sensor_sampling_delay"
+        android:numeric="integer"
+        android:selectAllOnFocus="true"
+        android:singleLine="true"
+        android:summary="SENSOR_DELAY_NORMAL = 200000, SENSOR_DELAY_UI = 60000, SENSOR_DELAY_GAME = 20000, SENSOR_DELAY_FASTEST = 5000"
+        android:title="Sensor sampling delay (microsecond)" />
     <ListPreference
         android:key="collect_mode"
         android:defaultValue="Turn"
@@ -49,9 +62,16 @@
         android:entryValues="@array/collect_mode"
         android:summary="Select collect mode"
         android:title="Collect mode" />
+    <ListPreference
+        android:key="timer_mode"
+        android:defaultValue="Schedule"
+        android:entries="@array/timer_mode"
+        android:entryValues="@array/timer_mode"
+        android:summary="Select timer mode"
+        android:title="Timer mode" />
     <android.support.v7.preference.SwitchPreferenceCompat
         android:key="texttospeech_switch"
         android:defaultValue="true"
-        android:summary="Enable text to speech in collection process"
+        android:summary="Enable text to speech for collection process"
         android:title="Text-to-speech" />
 </PreferenceScreen>

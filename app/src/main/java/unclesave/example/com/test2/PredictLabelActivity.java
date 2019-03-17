@@ -1,5 +1,7 @@
 package unclesave.example.com.test2;
 
+import android.app.AlertDialog;
+import android.content.DialogInterface;
 import android.content.SharedPreferences;
 import android.hardware.Sensor;
 import android.hardware.SensorEvent;
@@ -25,20 +27,14 @@ import java.util.TimerTask;
 
 public class PredictLabelActivity extends AppCompatActivity implements SensorEventListener {
 
-    private static final int N_SAMPLES = 200;
-    private TextView leftTextView;
-    private TextView rightTextView;
-    private TextView onTableTextView;
-    private TextView resultTextView;
+    private static final int N_SAMPLES = 15;
+    private TextView leftTextView, rightTextView, onTableTextView, resultTextView;
     private SensorManager sensorManager;
     private Sensor gyroscope, accelerometer, magnetometer, gravmeter;
-    private Boolean gyroSwitchPref, accSwitchPref, magSwitchPref;
-    private Boolean gravSwitchPref, orientationSwitchPref, textToSpeechSwitchPref;
-    private static List<Float> gyroX, gyroY, gyroZ;
-    private static List<Float> accX, accY, accZ;
-    private static List<Float> magX, magY, magZ;
-    private static List<Float> azimuth, pitch, roll;
-    private static List<Float> gravX, gravY, gravZ;
+    private Boolean gyroSwitchPref, accSwitchPref, magSwitchPref, gravSwitchPref,
+        orientationSwitchPref, textToSpeechSwitchPref;
+    private static List<Float> gyroX, gyroY, gyroZ, accX, accY, accZ,
+            magX, magY, magZ, azimuth, pitch, roll, gravX, gravY, gravZ;
     private float gyroscopeVal[] = new float[3];
     private float acceleroVal[] = new float[3];
     private float magnetoVal[] = new float[3];
@@ -63,15 +59,15 @@ public class PredictLabelActivity extends AppCompatActivity implements SensorEve
         accX = new ArrayList<>();
         accY = new ArrayList<>();
         accZ = new ArrayList<>();
+        azimuth = new ArrayList<>();
+        pitch = new ArrayList<>();
+        roll = new ArrayList<>();
         magX = new ArrayList<>();
         magY = new ArrayList<>();
         magZ = new ArrayList<>();
         gravX = new ArrayList<>();
         gravY = new ArrayList<>();
         gravZ = new ArrayList<>();
-        azimuth = new ArrayList<>();
-        pitch = new ArrayList<>();
-        roll = new ArrayList<>();
 
         leftTextView = findViewById(R.id.left_prob);
         rightTextView = findViewById(R.id.right_prob);
@@ -84,6 +80,8 @@ public class PredictLabelActivity extends AppCompatActivity implements SensorEve
         accelerometer = sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER);
         magnetometer = sensorManager.getDefaultSensor(Sensor.TYPE_MAGNETIC_FIELD);
         gravmeter = sensorManager.getDefaultSensor(Sensor.TYPE_GRAVITY);
+        android.support.v7.preference.PreferenceManager
+                .setDefaultValues(this, R.xml.preferences, false);
         SharedPreferences sharedPref =
                 android.support.v7.preference.PreferenceManager
                         .getDefaultSharedPreferences(this);
@@ -102,6 +100,39 @@ public class PredictLabelActivity extends AppCompatActivity implements SensorEve
         startPredictButton = findViewById(R.id.start_predict_button);
         stopPredictButton = findViewById(R.id.stop_predict_button);
         stopPredictButton.setClickable(false);
+        if (!gyroSwitchPref || !accSwitchPref || !magSwitchPref || !orientationSwitchPref || !gravSwitchPref) {
+            String message = "Please enable required sensors in the settings: ";
+            if (!gyroSwitchPref)
+                message += "gyroscope\n";
+            if (!accSwitchPref)
+                message += "accelerometer\n";
+            if (!magSwitchPref)
+                message += "magnetometer\n";
+            if (!orientationSwitchPref)
+                message += "orientation sensor\n";
+            if (!gravSwitchPref)
+                message += "gravity sensor\n";
+            AlertDialog.Builder alertDialogBuilder = new AlertDialog.Builder(this);
+            alertDialogBuilder.setMessage(message);
+
+            alertDialogBuilder.setPositiveButton("Close",
+                    new DialogInterface.OnClickListener() {
+                        @Override
+                        public void onClick(DialogInterface arg0, int arg1) {
+                            finish();
+                        }
+                    });
+            alertDialogBuilder.setOnCancelListener(new DialogInterface.OnCancelListener() {
+                @Override
+                public void onCancel(DialogInterface dialog) {
+                    // if back button is pressed
+                    finish();
+                }
+            });
+            AlertDialog alertDialog = alertDialogBuilder.create();
+            alertDialog.setCanceledOnTouchOutside(false);
+            alertDialog.show();
+        }
     }
 
     @Override
@@ -210,6 +241,24 @@ public class PredictLabelActivity extends AppCompatActivity implements SensorEve
 
     }
 
+    private void speak(final String speech) {
+        tts = new TextToSpeech(this, new TextToSpeech.OnInitListener() {
+            @Override
+            public void onInit (int status) {
+                // TODO Auto-generated method stub
+                if (status == TextToSpeech.SUCCESS) {
+                    int result = tts.setLanguage(Locale.US);
+                    if (result == TextToSpeech.LANG_MISSING_DATA ||
+                            result == TextToSpeech.LANG_NOT_SUPPORTED)
+                        Log.e("error", "This Language is not supported");
+                    else
+                        tts.speak(speech, TextToSpeech.QUEUE_ADD, null);
+                } else
+                    Log.e("error", "Initialization Failed!");
+            }
+        });
+    }
+
     public void startPredict(View view) {
         startPredictButton.setClickable(false);
         stopPredictButton.setClickable(true);
@@ -219,21 +268,21 @@ public class PredictLabelActivity extends AppCompatActivity implements SensorEve
             public void run() {
                 if (gyroX.size() == N_SAMPLES && gyroY.size() == N_SAMPLES && gyroZ.size() == N_SAMPLES &&
                         accX.size() == N_SAMPLES && accY.size() == N_SAMPLES && accZ.size() == N_SAMPLES &&
-                        magX.size() == N_SAMPLES && azimuth.size() == N_SAMPLES && pitch.size() == N_SAMPLES &&
-                        roll.size() == N_SAMPLES && gravX.size() == N_SAMPLES && gravY.size() == N_SAMPLES &&
-                        gravZ.size() == N_SAMPLES) {
+                        azimuth.size() == N_SAMPLES && pitch.size() == N_SAMPLES && roll.size() == N_SAMPLES &&
+                        magX.size() == N_SAMPLES && magY.size() == N_SAMPLES && magZ.size() == N_SAMPLES &&
+                        gravX.size() == N_SAMPLES && gravY.size() == N_SAMPLES && gravZ.size() == N_SAMPLES) {
                     data.addAll(gyroX);
                     data.addAll(gyroY);
                     data.addAll(gyroZ);
                     data.addAll(accX);
                     data.addAll(accY);
                     data.addAll(accZ);
-                    data.addAll(magX);
-                    data.addAll(magY);
-                    data.addAll(magZ);
                     data.addAll(azimuth);
                     data.addAll(pitch);
                     data.addAll(roll);
+                    data.addAll(magX);
+                    data.addAll(magY);
+                    data.addAll(magZ);
                     data.addAll(gravX);
                     data.addAll(gravY);
                     data.addAll(gravZ);
@@ -245,38 +294,6 @@ public class PredictLabelActivity extends AppCompatActivity implements SensorEve
                             rightTextView.setText("Right: " + Float.toString(round(results[2], 2)));
                             onTableTextView.setText("On table: " + Float.toString(round(results[1], 2)));
                             resultTextView.setText("Result: " + Arrays.toString(results));
-                            /*tts = new TextToSpeech(getApplicationContext(), new TextToSpeech.OnInitListener() {
-                                @Override
-                                public void onInit (int status) {
-                                    // TODO Auto-generated method stub
-                                    if (status == TextToSpeech.SUCCESS) {
-                                        int result = tts.setLanguage(Locale.US);
-                                        if (result == TextToSpeech.LANG_MISSING_DATA ||
-                                                result == TextToSpeech.LANG_NOT_SUPPORTED) {
-                                            Log.e("error", "This Language is not supported");
-                                        } else {
-                                            float maxVal = 0.0f;
-                                            int maxIndex = 0;
-                                            for (int i = 0; i < results.length; i++) {
-                                                if (results[i] > maxVal) {
-                                                    maxVal = results[i];
-                                                    maxIndex = i;
-                                                }
-                                            }
-                                            switch (maxIndex) {
-                                                case 0: tts.speak("Left", TextToSpeech.QUEUE_ADD, null);
-                                                    break;
-                                                case 1: tts.speak("On table", TextToSpeech.QUEUE_ADD, null);
-                                                    break;
-                                                case 2: tts.speak("Right", TextToSpeech.QUEUE_ADD, null);
-                                                    break;
-                                                default: break;
-                                            }
-                                        }
-                                    } else
-                                        Log.e("error", "Initialization Failed!");
-                                }
-                            });*/
                         }
                     });
                 }
@@ -287,12 +304,12 @@ public class PredictLabelActivity extends AppCompatActivity implements SensorEve
                 accX.clear();
                 accY.clear();
                 accZ.clear();
-                magX.clear();
-                magY.clear();
-                magZ.clear();
                 azimuth.clear();
                 pitch.clear();
                 roll.clear();
+                magX.clear();
+                magY.clear();
+                magZ.clear();
                 gravX.clear();
                 gravY.clear();
                 gravZ.clear();
@@ -303,7 +320,10 @@ public class PredictLabelActivity extends AppCompatActivity implements SensorEve
             @Override
             public void run() {
                 if (gyroX.size() < N_SAMPLES && gyroY.size() < N_SAMPLES && gyroZ.size() < N_SAMPLES &&
-                        accX.size() < N_SAMPLES && accY.size() < N_SAMPLES && accZ.size() < N_SAMPLES) {
+                        accX.size() < N_SAMPLES && accY.size() < N_SAMPLES && accZ.size() < N_SAMPLES &&
+                        azimuth.size() < N_SAMPLES && pitch.size() < N_SAMPLES && roll.size() < N_SAMPLES &&
+                        magX.size() < N_SAMPLES && magY.size() < N_SAMPLES && magZ.size() < N_SAMPLES &&
+                        gravX.size() < N_SAMPLES && gravY.size() < N_SAMPLES && gravZ.size() < N_SAMPLES) {
                     gyroX.add(gyroscopeVal[0]);
                     gyroY.add(gyroscopeVal[1]);
                     gyroZ.add(gyroscopeVal[2]);
@@ -313,82 +333,17 @@ public class PredictLabelActivity extends AppCompatActivity implements SensorEve
                     azimuth.add(orientationVal[0]);
                     pitch.add(orientationVal[1]);
                     roll.add(orientationVal[2]);
+                    magX.add(acceleroVal[0]);
+                    magY.add(acceleroVal[1]);
+                    magZ.add(acceleroVal[2]);
                     gravX.add(gravVal[0]);
                     gravY.add(gravVal[1]);
                     gravZ.add(gravVal[2]);
                 }
             }
         };
-        collectTimer.scheduleAtFixedRate(collectTimerTask, 0, 4000);
-        logTimer.scheduleAtFixedRate(logTimerTask, 0, 20);
-        /*if (gyroX.size() == N_SAMPLES && gyroY.size() == N_SAMPLES && gyroZ.size() == N_SAMPLES &&
-                accX.size() == N_SAMPLES && accY.size() == N_SAMPLES && accZ.size() == N_SAMPLES) {
-            new AsyncTask<List<Float>, Void, Void>() {
-                @Override
-                protected void onPreExecute() {
-                    super.onPreExecute();
-                    data.addAll(gyroX);
-                    data.addAll(gyroY);
-                    data.addAll(gyroZ);
-                    data.addAll(accX);
-                    data.addAll(accY);
-                    data.addAll(accZ);
-                }
-
-                @Override
-                protected Void doInBackground(List<Float>... params) {
-                    results = classifier.predictProbabilities(toFloatArray(params[0]));
-                    try {
-                        //Display result on UI
-                        runOnUiThread(new Runnable() {
-                            @Override
-                            public void run() {
-                                leftTextView.setText("Left: " + Float.toString(round(results[0], 2)));
-                                rightTextView.setText("Right: " + Float.toString(round(results[2], 2)));
-                                //bothTextView.setText("Both: " + Float.toString(round(results[0], 2)));
-                                onTableTextView.setText("On table: " + Float.toString(round(results[1], 2)));
-                                resultTextView.setText("Result: " + Arrays.toString(results));
-                            }
-                        });
-                    }
-                    catch (Exception e) { }
-                    return null;
-                }
-
-                @Override
-                protected void onPostExecute(Void aVoid) {
-                    super.onPostExecute(aVoid);
-                    data.clear();
-                    gyroX.clear();
-                    gyroY.clear();
-                    gyroZ.clear();
-                    accX.clear();
-                    accY.clear();
-                    accZ.clear();
-                    gyro = true;
-                    accelero = true;
-                    logTimer = new Timer();
-                    logTimerTask = new TimerTask() {
-                        @Override
-                        public void run() {
-                            gyroX.add(gyroscopeVal[0]);
-                            gyroY.add(gyroscopeVal[1]);
-                            gyroZ.add(gyroscopeVal[2]);
-                            accX.add(acceleroVal[0]);
-                            accY.add(acceleroVal[1]);
-                            accZ.add(acceleroVal[2]);
-                        }
-                    };
-                    logTimer.scheduleAtFixedRate(logTimerTask, 0, 20);
-                }
-            }.execute(data);
-        }
-        else if (gyroX.size() == N_SAMPLES && gyroY.size() == N_SAMPLES && gyroZ.size() == N_SAMPLES) {
-            gyro = false;
-        }
-        else if (accX.size() == N_SAMPLES && accY.size() == N_SAMPLES && accZ.size() == N_SAMPLES) {
-            accelero = false;
-        }*/
+        collectTimer.schedule(collectTimerTask, 0, 3000);
+        logTimer.schedule(logTimerTask, 0, 200);
     }
 
     public void stopPredict(View view) {

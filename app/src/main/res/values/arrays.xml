@@ -9,4 +9,9 @@
         <item>Dense</item>
         <item>LTSM</item>
     </array>
+
+    <array name="timer_mode">
+        <item>Schedule</item>
+        <item>ScheduleAtFixedRate</item>
+    </array>
 </resources>
