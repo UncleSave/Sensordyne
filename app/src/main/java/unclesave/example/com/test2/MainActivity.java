@@ -70,9 +70,9 @@ public class MainActivity extends AppCompatActivity
         implements NavigationView.OnNavigationItemSelectedListener, SensorEventListener {
 
     private SensorManager sensorManager;
-    private Sensor gyroscope, accelerometer, magnetometer, gravmeter, linearaccelerometer;
-    private boolean gyroSwitchPref, accSwitchPref, magSwitchPref,
-        gravSwitchPref, orientationSwitchPref, linearAccSwitchPref, textToSpeechSwitchPref;
+    private Sensor gyroscope, accelerometer, magnetometer, gravmeter, linearaccelerometer, proximity;
+    private boolean gyroSwitchPref, accSwitchPref, magSwitchPref, gravSwitchPref, orientationSwitchPref,
+            linearAccSwitchPref, proximitySwitchPref, textToSpeechSwitchPref, logTimerSwitchPref;
     private int timeLabelIntervalPref, timeLoggingIntervalPref, sensorSamplingDelayPref;
     private String collectModePref, timerModePref;
     //private TextView gyroscopeInfo, accelerometerInfo;
@@ -86,13 +86,14 @@ public class MainActivity extends AppCompatActivity
     private AWSCredentialsProvider credentialsProvider;
     private AWSConfiguration configuration;
     private String androidID;
-    private float gyroscopeVal[] = new float[3];
-    private float acceleroVal[] = new float[3];
-    private float magnetoVal[] = new float[3];
-    private float orientationVal[] = new float[3];
-    private float gravVal[] = new float[3];
-    private float linearAcceleroVal[] = new float[3];
-    private float r[] = new float[9];
+    private float gyroscopeVal[];
+    private float acceleroVal[];
+    private float magnetoVal[];
+    private float orientationVal[];
+    private float gravVal[];
+    private float linearAcceleroVal[];
+    private long proximityVal;
+    private float r[];
     private long timeStamp;
     private SQLiteDatabase sensorDataDB = null;
     private File outputFile;
@@ -172,46 +173,51 @@ public class MainActivity extends AppCompatActivity
                 (SettingsActivity.KEY_PREF_GRAVITY_SWITCH, false);
         linearAccSwitchPref = sharedPref.getBoolean
                 (SettingsActivity.KEY_PREF_LINEAR_ACCELEROMETER_SWITCH, false);
+        proximitySwitchPref = sharedPref.getBoolean
+                (SettingsActivity.KEY_PREF_PROXIMITY_SWITCH, false);
         timeLabelIntervalPref = sharedPref.getInt
                 (SettingsActivity.KEY_PREF_TIME_LABEL_INTERVAL, 4000);
         timeLoggingIntervalPref = sharedPref.getInt
                 (SettingsActivity.KEY_PREF_TIME_LOG_INTERVAL, 20);
         sensorSamplingDelayPref = sharedPref.getInt
                 (SettingsActivity.KEY_PREF_SENSOR_SAMPLING_DELAY, 5000);
-        switch (sensorSamplingDelayPref) {
-            case 5000: sensorSamplingDelayPref = SensorManager.SENSOR_DELAY_FASTEST;
-                break;
-            default: break;
-        }
         collectModePref = sharedPref.getString
                 (SettingsActivity.KEY_PREF_COLLECT_MODE, "Random");
+        logTimerSwitchPref = sharedPref.getBoolean
+                (SettingsActivity.KEY_PREF_LOG_TIMER_SWITCH, true);
         timerModePref = sharedPref.getString
                 (SettingsActivity.KEY_PREF_TIMER_MODE, "Schedule");
         textToSpeechSwitchPref = sharedPref.getBoolean
-                (SettingsActivity.KEY_PREF_TEXT_TO_SPEECH, true);
+                (SettingsActivity.KEY_PREF_TEXT_TO_SPEECH, false);
         androidID = Settings.Secure.getString(getContentResolver(),
                 Settings.Secure.ANDROID_ID);
         sensorManager = (SensorManager)getSystemService(Context.SENSOR_SERVICE);
-        if (gyroSwitchPref)
+        if (gyroSwitchPref) {
             gyroscope = sensorManager.getDefaultSensor(Sensor.TYPE_GYROSCOPE);
-        /*gyroscopeInfo = findViewById(R.id.gyroscope_info);
-        if (gyroscope == null)
-            gyroscopeInfo.setText("Unable to detect gyroscope");
-        else if (!gyroSwitchPref)
-            gyroscopeInfo.setText("Gyroscope is disabled");*/
-        if (accSwitchPref)
+            gyroscopeVal = new float[3];
+        }
+        if (accSwitchPref) {
             accelerometer = sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER);
-        /*accelerometerInfo = findViewById(R.id.accelerometer_info);
-        if (accelerometer == null)
-            accelerometerInfo.setText("Unable to detect accelerometer");
-        else if (!accSwitchPref)
-            accelerometerInfo.setText("Accelerometer is disabled");*/
-        if (magSwitchPref)
+            acceleroVal = new float[3];
+        }
+        if (magSwitchPref) {
             magnetometer = sensorManager.getDefaultSensor(Sensor.TYPE_MAGNETIC_FIELD);
-        if (gravSwitchPref)
+            magnetoVal = new float[3];
+        }
+        if (gravSwitchPref) {
             gravmeter = sensorManager.getDefaultSensor(Sensor.TYPE_GRAVITY);
-        if (linearAccSwitchPref)
+            gravVal = new float[3];
+        }
+        if (linearAccSwitchPref) {
             linearaccelerometer = sensorManager.getDefaultSensor(Sensor.TYPE_LINEAR_ACCELERATION);
+            linearAcceleroVal = new float[3];
+        }
+        if (orientationSwitchPref) {
+            orientationVal = new float[3];
+            r = new float[9];
+        }
+        if (proximitySwitchPref)
+            proximity = sensorManager.getDefaultSensor(Sensor.TYPE_PROXIMITY);
         exportCloudButton = findViewById(R.id.export_button);
         localCSVButton = findViewById(R.id.local_csv_button);
         labelInstruct = findViewById(R.id.label_instruct);
@@ -244,6 +250,8 @@ public class MainActivity extends AppCompatActivity
             insertCommand.append(", gravX, gravY, gravZ");
         if (linearAccSwitchPref)
             insertCommand.append(", linearAccX, linearAccY, linearAccZ");
+        if (proximitySwitchPref)
+            insertCommand.append(", proximity");
         insertCommand.append(") VALUES (?, ?");
         if (gyroSwitchPref)
             insertCommand.append(", ?, ?, ?");
@@ -257,78 +265,44 @@ public class MainActivity extends AppCompatActivity
             insertCommand.append(", ?, ?, ?");
         if (linearAccSwitchPref)
             insertCommand.append(", ?, ?, ?");
+        if (proximitySwitchPref)
+            insertCommand.append(", ?");
         insertCommand.append(");");
         insert = sensorDataDB.compileStatement(insertCommand.toString());
+        /*Toast.makeText(this, "Gyro: " + Boolean.toString(gyroSwitchPref) +
+                " " + "Acc: " + Boolean.toString(accSwitchPref) +
+                        " " + "Mag: " + Boolean.toString(magSwitchPref) +
+                        " " + "Orien: " + Boolean.toString(orientationSwitchPref) +
+                        " " + "Grav: " + Boolean.toString(gravSwitchPref) +
+                        " " + "Linear acc: " + Boolean.toString(linearAccSwitchPref)
+                , Toast.LENGTH_LONG).show();*/
+        /*Toast.makeText(this, "Label: " + timeLabelIntervalPref
+                + " Log: " + timeLoggingIntervalPref + " Sensor: " + sensorSamplingDelayPref, Toast.LENGTH_LONG).show();*/
+        //Toast.makeText(this, "Collect mode: " + collectModePref + " Timer mode: " + timerModePref, Toast.LENGTH_LONG).show();
     }
 
     @Override
     protected void onStart() {
         super.onStart();
-        /*if (gyroSwitchPref)
-            sensorManager.registerListener(this, gyroscope,
-                    SensorManager.SENSOR_DELAY_FASTEST);
-        if (accSwitchPref)
-            sensorManager.registerListener(this, accelerometer,
-                    SensorManager.SENSOR_DELAY_FASTEST);
-        if (magSwitchPref)
-            sensorManager.registerListener(this, magnetometer,
-                    SensorManager.SENSOR_DELAY_FASTEST);
-        if (gravSwitchPref)
-            sensorManager.registerListener(this, gravmeter,
-                    SensorManager.SENSOR_DELAY_FASTEST);
-        if (linearAccSwitchPref)
-            sensorManager.registerListener(this, linearaccelerometer,
-                    SensorManager.SENSOR_DELAY_FASTEST);*/
+        onListener();
     }
 
     @Override
     protected void onPause() {
         super.onPause();
-        if (gyroSwitchPref)
-            sensorManager.unregisterListener(this, gyroscope);
-        if (accSwitchPref)
-            sensorManager.unregisterListener(this, accelerometer);
-        if (magSwitchPref)
-            sensorManager.unregisterListener(this, magnetometer);
-        if (gravSwitchPref)
-            sensorManager.unregisterListener(this, gravmeter);
-        if (linearAccSwitchPref)
-            sensorManager.unregisterListener(this, linearaccelerometer);
+        offListener();
     }
 
     @Override
     protected void onResume() {
         super.onResume();
-        /*if (gyroSwitchPref)
-            sensorManager.registerListener(this, gyroscope,
-                    SensorManager.SENSOR_DELAY_FASTEST);
-        if (accSwitchPref)
-            sensorManager.registerListener(this, accelerometer,
-                    SensorManager.SENSOR_DELAY_FASTEST);
-        if (magSwitchPref)
-            sensorManager.registerListener(this, magnetometer,
-                    SensorManager.SENSOR_DELAY_FASTEST);
-        if (gravSwitchPref)
-            sensorManager.registerListener(this, gravmeter,
-                    SensorManager.SENSOR_DELAY_FASTEST);
-        if (linearAccSwitchPref)
-            sensorManager.registerListener(this, linearaccelerometer,
-                    SensorManager.SENSOR_DELAY_FASTEST);*/
+        onListener();
     }
 
     @Override
     protected void onStop() {
         super.onStop();
-        if (gyroSwitchPref)
-            sensorManager.unregisterListener(this, gyroscope);
-        if (accSwitchPref)
-            sensorManager.unregisterListener(this, accelerometer);
-        if (magSwitchPref)
-            sensorManager.unregisterListener(this, magnetometer);
-        if (gravSwitchPref)
-            sensorManager.unregisterListener(this, gravmeter);
-        if (linearAccSwitchPref)
-            sensorManager.unregisterListener(this, linearaccelerometer);
+        offListener();
     }
 
     @Override
@@ -430,19 +404,67 @@ public class MainActivity extends AppCompatActivity
                 break;
             case Sensor.TYPE_LINEAR_ACCELERATION:
                 System.arraycopy(event.values, 0, linearAcceleroVal, 0, event.values.length);
-            default:
+            case Sensor.TYPE_PROXIMITY:
+                proximityVal = (event.values[0] == 0.0f)? 0L: 1L;
                 break;
+            default: break;
         }
-        if (accSwitchPref && magSwitchPref && acceleroVal != null && magnetoVal != null) {
+        if (accSwitchPref && magSwitchPref && orientationSwitchPref) {
             SensorManager.getRotationMatrix(r, null, acceleroVal, magnetoVal);
             SensorManager.getOrientation(r, orientationVal);
         }
         timeStamp = event.timestamp;
+
+        if (!logTimerSwitchPref) {
+            new AsyncTask<Void, Void, Void>() {
+                @Override
+                protected Void doInBackground(Void... voids) {
+                    if (collectStatus && !label.equals("")) {
+                        int index = 1;
+                        insert.bindLong(index++, timeStamp);
+                        insert.bindString(index++, label);
+                        if (gyroSwitchPref) {
+                            insert.bindDouble(index++, gyroscopeVal[0]);
+                            insert.bindDouble(index++, gyroscopeVal[1]);
+                            insert.bindDouble(index++, gyroscopeVal[2]);
+                        }
+                        if (accSwitchPref) {
+                            insert.bindDouble(index++, acceleroVal[0]);
+                            insert.bindDouble(index++, acceleroVal[1]);
+                            insert.bindDouble(index++, acceleroVal[2]);
+                        }
+                        if (magSwitchPref) {
+                            insert.bindDouble(index++, magnetoVal[0]);
+                            insert.bindDouble(index++, magnetoVal[1]);
+                            insert.bindDouble(index++, magnetoVal[2]);
+                        }
+                        if (orientationSwitchPref) {
+                            insert.bindDouble(index++, orientationVal[0]);
+                            insert.bindDouble(index++, orientationVal[1]);
+                            insert.bindDouble(index++, orientationVal[2]);
+                        }
+                        if (gravSwitchPref) {
+                            insert.bindDouble(index++, gravVal[0]);
+                            insert.bindDouble(index++, gravVal[1]);
+                            insert.bindDouble(index++, gravVal[2]);
+                        }
+                        if (linearAccSwitchPref) {
+                            insert.bindDouble(index++, linearAcceleroVal[0]);
+                            insert.bindDouble(index++, linearAcceleroVal[1]);
+                            insert.bindDouble(index++, linearAcceleroVal[2]);
+                        }
+                        if (proximitySwitchPref)
+                            insert.bindLong(index++, proximityVal);
+                        insert.execute();
+                    }
+                    return null;
+                }
+            }.execute();
+        }
     }
 
     @Override
     public void onAccuracyChanged(Sensor sensor, int accuracy) {
-
     }
 
     // Checks if external storage is available for read and write
@@ -510,6 +532,42 @@ public class MainActivity extends AppCompatActivity
         }
     }
 
+    public void onListener() {
+        if (gyroSwitchPref)
+            sensorManager.registerListener(this, gyroscope,
+                    sensorSamplingDelayPref);
+        if (accSwitchPref)
+            sensorManager.registerListener(this, accelerometer,
+                    sensorSamplingDelayPref);
+        if (magSwitchPref)
+            sensorManager.registerListener(this, magnetometer,
+                    sensorSamplingDelayPref);
+        if (gravSwitchPref)
+            sensorManager.registerListener(this, gravmeter,
+                    sensorSamplingDelayPref);
+        if (linearAccSwitchPref)
+            sensorManager.registerListener(this, linearaccelerometer,
+                    sensorSamplingDelayPref);
+        if (proximitySwitchPref)
+            sensorManager.registerListener(this, proximity,
+                    sensorSamplingDelayPref);
+    }
+
+    public void offListener() {
+        if (gyroSwitchPref)
+            sensorManager.unregisterListener(this, gyroscope);
+        if (accSwitchPref)
+            sensorManager.unregisterListener(this, accelerometer);
+        if (magSwitchPref)
+            sensorManager.unregisterListener(this, magnetometer);
+        if (gravSwitchPref)
+            sensorManager.unregisterListener(this, gravmeter);
+        if (linearAccSwitchPref)
+            sensorManager.unregisterListener(this, linearaccelerometer);
+        if (proximitySwitchPref)
+            sensorManager.unregisterListener(this, proximity);
+    }
+
     private void speak(final String speech) {
         tts = new TextToSpeech(this, new TextToSpeech.OnInitListener() {
             @Override
@@ -531,7 +589,7 @@ public class MainActivity extends AppCompatActivity
     private void createDatabase() {
         try {
             StringBuilder createCommand = new StringBuilder("CREATE TABLE IF NOT EXISTS sensordata " +
-                    "(id INTEGER primary key, timestamp REAL, label TEXT");
+                    "(id INTEGER primary key, timestamp INTEGER, label TEXT");
             if (gyroSwitchPref)
                 createCommand.append(", gyroX REAL, gyroY REAL, gyroZ REAL");
             if (accSwitchPref)
@@ -544,6 +602,8 @@ public class MainActivity extends AppCompatActivity
                 createCommand.append(", gravX REAL, gravY REAL, gravZ REAL");
             if (linearAccSwitchPref)
                 createCommand.append(", linearAccX REAL, linearAccY REAL, linearAccZ REAL");
+            if (proximitySwitchPref)
+                createCommand.append(", proximity INTEGER");
             createCommand.append(");");
             sensorDataDB = this.openOrCreateDatabase("CurInstSensorDB", MODE_PRIVATE, null);
             sensorDataDB.beginTransaction();
@@ -585,21 +645,6 @@ public class MainActivity extends AppCompatActivity
     }
 
     public void startCollect(View view) {
-        if (gyroSwitchPref)
-            sensorManager.registerListener(this, gyroscope,
-                    SensorManager.SENSOR_DELAY_FASTEST);
-        if (accSwitchPref)
-            sensorManager.registerListener(this, accelerometer,
-                    SensorManager.SENSOR_DELAY_FASTEST);
-        if (magSwitchPref)
-            sensorManager.registerListener(this, magnetometer,
-                    SensorManager.SENSOR_DELAY_FASTEST);
-        if (gravSwitchPref)
-            sensorManager.registerListener(this, gravmeter,
-                    SensorManager.SENSOR_DELAY_FASTEST);
-        if (linearAccSwitchPref)
-            sensorManager.registerListener(this, linearaccelerometer,
-                    SensorManager.SENSOR_DELAY_FASTEST);
         // Switching collect mode around after first collection causes crashes
         if (!labels.isEmpty()) {
             addLabelButton.setClickable(false);
@@ -615,7 +660,6 @@ public class MainActivity extends AppCompatActivity
             try {
                 collectTimer = new Timer();
                 logTimer = new Timer();
-                final Long timeNow = System.currentTimeMillis();
                 collectTimerTask = new TimerTask() {
                     @Override
                     public void run() {
@@ -651,57 +695,60 @@ public class MainActivity extends AppCompatActivity
                         });
                     }
                 };
-                logTimerTask = new TimerTask() {
-                    @Override
-                    public void run() {
-                        if (collectStatus && !label.equals("")) {
-                            sensorDataDB.beginTransaction();
-                            int index = 1;
-                            insert.bindLong(index++, timeNow - timeStamp);
-                            insert.bindString(index++, label);
-                            if (gyroSwitchPref) {
-                                insert.bindDouble(index++, gyroscopeVal[0]);
-                                insert.bindDouble(index++, gyroscopeVal[1]);
-                                insert.bindDouble(index++, gyroscopeVal[2]);
+                if (logTimerSwitchPref) {
+                    logTimerTask = new TimerTask() {
+                        @Override
+                        public void run() {
+                            if (collectStatus && !label.equals("")) {
+                                int index = 1;
+                                insert.bindLong(index++, timeStamp);
+                                insert.bindString(index++, label);
+                                if (gyroSwitchPref) {
+                                    insert.bindDouble(index++, gyroscopeVal[0]);
+                                    insert.bindDouble(index++, gyroscopeVal[1]);
+                                    insert.bindDouble(index++, gyroscopeVal[2]);
+                                }
+                                if (accSwitchPref) {
+                                    insert.bindDouble(index++, acceleroVal[0]);
+                                    insert.bindDouble(index++, acceleroVal[1]);
+                                    insert.bindDouble(index++, acceleroVal[2]);
+                                }
+                                if (magSwitchPref) {
+                                    insert.bindDouble(index++, magnetoVal[0]);
+                                    insert.bindDouble(index++, magnetoVal[1]);
+                                    insert.bindDouble(index++, magnetoVal[2]);
+                                }
+                                if (orientationSwitchPref) {
+                                    insert.bindDouble(index++, orientationVal[0]);
+                                    insert.bindDouble(index++, orientationVal[1]);
+                                    insert.bindDouble(index++, orientationVal[2]);
+                                }
+                                if (gravSwitchPref) {
+                                    insert.bindDouble(index++, gravVal[0]);
+                                    insert.bindDouble(index++, gravVal[1]);
+                                    insert.bindDouble(index++, gravVal[2]);
+                                }
+                                if (linearAccSwitchPref) {
+                                    insert.bindDouble(index++, linearAcceleroVal[0]);
+                                    insert.bindDouble(index++, linearAcceleroVal[1]);
+                                    insert.bindDouble(index++, linearAcceleroVal[2]);
+                                }
+                                if (proximitySwitchPref)
+                                    insert.bindLong(index++, proximityVal);
+                                insert.execute();
                             }
-                            if (accSwitchPref) {
-                                insert.bindDouble(index++, acceleroVal[0]);
-                                insert.bindDouble(index++, acceleroVal[1]);
-                                insert.bindDouble(index++, acceleroVal[2]);
-                            }
-                            if (magSwitchPref) {
-                                insert.bindDouble(index++, magnetoVal[0]);
-                                insert.bindDouble(index++, magnetoVal[1]);
-                                insert.bindDouble(index++, magnetoVal[2]);
-                            }
-                            if (orientationSwitchPref) {
-                                insert.bindDouble(index++, orientationVal[0]);
-                                insert.bindDouble(index++, orientationVal[1]);
-                                insert.bindDouble(index++, orientationVal[2]);
-                            }
-                            if (gravSwitchPref) {
-                                insert.bindDouble(index++, gyroscopeVal[0]);
-                                insert.bindDouble(index++, gyroscopeVal[1]);
-                                insert.bindDouble(index++, gyroscopeVal[2]);
-                            }
-                            if (linearAccSwitchPref) {
-                                insert.bindDouble(index++, linearAcceleroVal[0]);
-                                insert.bindDouble(index++, linearAcceleroVal[1]);
-                                insert.bindDouble(index++, linearAcceleroVal[2]);
-                            }
-                            insert.execute();
-                            sensorDataDB.setTransactionSuccessful();
-                            sensorDataDB.endTransaction();
                         }
-                    }
-                };
+                    };
+                }
                 collectStatus = true;
                 switch (timerModePref) {
                     case "Schedule": collectTimer.schedule(collectTimerTask, 0, timeLabelIntervalPref);
-                        logTimer.schedule(logTimerTask, 0, timeLoggingIntervalPref);
+                        if (logTimerSwitchPref)
+                            logTimer.schedule(logTimerTask, 0, timeLoggingIntervalPref);
                         break;
                     case "ScheduleAtFixedRate": collectTimer.scheduleAtFixedRate(collectTimerTask, 0, timeLabelIntervalPref);
-                        logTimer.scheduleAtFixedRate(logTimerTask, 0, timeLoggingIntervalPref);
+                        if (logTimerSwitchPref)
+                            logTimer.scheduleAtFixedRate(logTimerTask, 0, timeLoggingIntervalPref);
                         break;
                     default: break;
                 }
@@ -714,16 +761,7 @@ public class MainActivity extends AppCompatActivity
     }
 
     public void stopCollect(View view) {
-        if (gyroSwitchPref)
-            sensorManager.unregisterListener(this, gyroscope);
-        if (accSwitchPref)
-            sensorManager.unregisterListener(this, accelerometer);
-        if (magSwitchPref)
-            sensorManager.unregisterListener(this, magnetometer);
-        if (gravSwitchPref)
-            sensorManager.unregisterListener(this, gravmeter);
-        if (linearAccSwitchPref)
-            sensorManager.unregisterListener(this, linearaccelerometer);
+        offListener();
         collectStatus = false;
         label = "";
         logTimer.cancel();
@@ -754,12 +792,13 @@ public class MainActivity extends AppCompatActivity
                     csvHeader.append(",GravX,GravY,GravZ");
                 if (linearAccSwitchPref)
                     csvHeader.append(",LinearAccX,LinearAccY,LinearAccZ");
+                if (proximitySwitchPref)
+                    csvHeader.append(",Proximity");
                 csvHeader.append('\n');
                 outputStream.write(csvHeader.toString().getBytes());
                 do {
                     int columnIndex = 0;
                     StringBuilder row = new StringBuilder();
-
                     String recordCount = cur.getString(columnIndex++);
                     String tStamp = cur.getString(columnIndex++);
                     String label = cur.getString(columnIndex++);
@@ -794,93 +833,18 @@ public class MainActivity extends AppCompatActivity
                         String gravZ = cur.getString(columnIndex++);
                         row.append(gravX + ',' + gravY + ',' + gravZ + ',');
                     }
-                    if (gravSwitchPref) {
+                    if (linearAccSwitchPref) {
                         String linearAccX = cur.getString(columnIndex++);
                         String linearAccY = cur.getString(columnIndex++);
                         String linearAccZ = cur.getString(columnIndex++);
                         row.append(linearAccX + ',' + linearAccY + ',' + linearAccZ + ',');
                     }
+                    if (proximitySwitchPref) {
+                        String proximity = cur.getString(columnIndex++);
+                        row.append(proximity);
+                    }
                     row.append('\n');
                     outputStream.write(row.toString().getBytes());
-
-
-                    /*
-                    String recordCount = cur.getString(columnIndex++);
-                    String tStamp = cur.getString(columnIndex++);
-                    String label = cur.getString(columnIndex++);
-                    outputStream.write(recordCount.getBytes());
-                    outputStream.write(",".getBytes());
-                    outputStream.write(tStamp.getBytes());
-                    outputStream.write(",".getBytes());
-                    outputStream.write(label.getBytes());
-                    outputStream.write(",".getBytes());
-                    if (gyroSwitchPref) {
-                        String gyroX = cur.getString(columnIndex++);
-                        String gyroY = cur.getString(columnIndex++);
-                        String gyroZ = cur.getString(columnIndex++);
-                        outputStream.write(gyroX.getBytes());
-                        outputStream.write(",".getBytes());
-                        outputStream.write(gyroY.getBytes());
-                        outputStream.write(",".getBytes());
-                        outputStream.write(gyroZ.getBytes());
-                        outputStream.write(",".getBytes());
-                    }
-                    if (accSwitchPref) {
-                        String acceleroX = cur.getString(columnIndex++);
-                        String acceleroY = cur.getString(columnIndex++);
-                        String acceleroZ = cur.getString(columnIndex++);
-                        outputStream.write(acceleroX.getBytes());
-                        outputStream.write(",".getBytes());
-                        outputStream.write(acceleroY.getBytes());
-                        outputStream.write(",".getBytes());
-                        outputStream.write(acceleroZ.getBytes());
-                        outputStream.write(",".getBytes());
-                    }
-                    if (magSwitchPref) {
-                        String magX = cur.getString(columnIndex++);
-                        String magY = cur.getString(columnIndex++);
-                        String magZ = cur.getString(columnIndex++);
-                        outputStream.write(magX.getBytes());
-                        outputStream.write(",".getBytes());
-                        outputStream.write(magY.getBytes());
-                        outputStream.write(",".getBytes());
-                        outputStream.write(magZ.getBytes());
-                        outputStream.write(",".getBytes());
-                    }
-                    if (orientationSwitchPref) {
-                        String azimut = cur.getString(columnIndex++);
-                        String pitch = cur.getString(columnIndex++);
-                        String roll = cur.getString(columnIndex++);
-                        outputStream.write(azimut.getBytes());
-                        outputStream.write(",".getBytes());
-                        outputStream.write(pitch.getBytes());
-                        outputStream.write(",".getBytes());
-                        outputStream.write(roll.getBytes());
-                        outputStream.write(",".getBytes());
-                    }
-                    if (gravSwitchPref) {
-                        String gravX = cur.getString(columnIndex++);
-                        String gravY = cur.getString(columnIndex++);
-                        String gravZ = cur.getString(columnIndex++);
-                        outputStream.write(gravX.getBytes());
-                        outputStream.write(",".getBytes());
-                        outputStream.write(gravY.getBytes());
-                        outputStream.write(",".getBytes());
-                        outputStream.write(gravZ.getBytes());
-                        outputStream.write(",".getBytes());
-                    }
-                    if (linearAccSwitchPref) {
-                        String linearAccX = cur.getString(columnIndex++);
-                        String linearAccY = cur.getString(columnIndex++);
-                        String linearAccZ = cur.getString(columnIndex++);
-                        outputStream.write(linearAccX.getBytes());
-                        outputStream.write(",".getBytes());
-                        outputStream.write(linearAccY.getBytes());
-                        outputStream.write(",".getBytes());
-                        outputStream.write(linearAccZ.getBytes());
-                        outputStream.write(",".getBytes());
-                    }
-                    outputStream.write("\n".getBytes());*/
                 } while (cur.moveToNext());
                 outputStream.flush();
                 outputStream.close();

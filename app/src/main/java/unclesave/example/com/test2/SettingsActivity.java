@@ -12,10 +12,12 @@ public class SettingsActivity extends AppCompatActivity {
     public static final String KEY_PREF_ORIENTATION_SWITCH = "orientation_switch";
     public static final String KEY_PREF_GRAVITY_SWITCH = "gravity_switch";
     public static final String KEY_PREF_LINEAR_ACCELEROMETER_SWITCH = "linear_accelerometer_switch";
+    public static final String KEY_PREF_PROXIMITY_SWITCH = "proximity_switch";
     public static final String KEY_PREF_TIME_LABEL_INTERVAL = "time_label_interval";
     public static final String KEY_PREF_TIME_LOG_INTERVAL = "time_logging_interval";
     public static final String KEY_PREF_SENSOR_SAMPLING_DELAY = "sensor_sampling_delay";
     public static final String KEY_PREF_COLLECT_MODE = "collect_mode";
+    public static final String KEY_PREF_LOG_TIMER_SWITCH = "log_timer_switch";
     public static final String KEY_PREF_TIMER_MODE = "timer_mode";
     public static final String KEY_PREF_TEXT_TO_SPEECH = "texttospeech_switch";
 

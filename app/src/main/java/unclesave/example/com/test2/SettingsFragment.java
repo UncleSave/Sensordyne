@@ -17,12 +17,12 @@ import android.support.v7.preference.SwitchPreferenceCompat;
 public class SettingsFragment extends PreferenceFragmentCompat {
 
     private SwitchPreferenceCompat gyroscopeSetting, accelerometerSetting, magnetometerSetting,
-            orientationSetting, gravitySetting, linearaccelerometerSetting;
+            orientationSetting, gravitySetting, linearaccelerometerSetting, proximitySetting, logTimerSetting;
     private IntEditTextPreference timeLabelIntervalSetting, timeLoggingIntervalSetting, sensorSamplingDelaySetting;
     private ListPreference collectModeSetting, timerModeSetting;
     private SwitchPreferenceCompat textToSpeechSetting;
     private SensorManager sensorManager;
-    private Sensor gyroscope, accelerometer, magnetometer, gravmeter, linearaccelerometer;
+    private Sensor gyroscope, accelerometer, magnetometer, gravmeter, linearaccelerometer, proximity;
 
     @Override
     public void onCreatePreferences(Bundle savedInstanceState, String rootKey) {
@@ -34,6 +34,7 @@ public class SettingsFragment extends PreferenceFragmentCompat {
         orientationSetting = (SwitchPreferenceCompat) findPreference(SettingsActivity.KEY_PREF_ORIENTATION_SWITCH);
         gravitySetting = (SwitchPreferenceCompat) findPreference(SettingsActivity.KEY_PREF_GRAVITY_SWITCH);
         linearaccelerometerSetting = (SwitchPreferenceCompat) findPreference(SettingsActivity.KEY_PREF_LINEAR_ACCELEROMETER_SWITCH);
+        proximitySetting = (SwitchPreferenceCompat) findPreference(SettingsActivity.KEY_PREF_PROXIMITY_SWITCH);
 
         try {
             sensorManager = (SensorManager) getActivity().getSystemService(Context.SENSOR_SERVICE);
@@ -66,6 +67,11 @@ public class SettingsFragment extends PreferenceFragmentCompat {
                 linearaccelerometerSetting.setEnabled(false);
                 linearaccelerometerSetting.setChecked(false);
             }
+            proximity = sensorManager.getDefaultSensor(Sensor.TYPE_PROXIMITY);
+            if (proximity == null) {
+                proximitySetting.setEnabled(false);
+                proximitySetting.setChecked(false);
+            }
         }
         catch (NullPointerException e) {
             e.printStackTrace();
@@ -74,6 +80,7 @@ public class SettingsFragment extends PreferenceFragmentCompat {
         timeLoggingIntervalSetting = (IntEditTextPreference) findPreference(SettingsActivity.KEY_PREF_TIME_LOG_INTERVAL);
         sensorSamplingDelaySetting = (IntEditTextPreference) findPreference(SettingsActivity.KEY_PREF_SENSOR_SAMPLING_DELAY);
         collectModeSetting = (ListPreference) findPreference(SettingsActivity.KEY_PREF_COLLECT_MODE);
+        logTimerSetting = (SwitchPreferenceCompat) findPreference(SettingsActivity.KEY_PREF_LOG_TIMER_SWITCH);
         timerModeSetting = (ListPreference) findPreference(SettingsActivity.KEY_PREF_TIMER_MODE);
         textToSpeechSetting = (SwitchPreferenceCompat) findPreference(SettingsActivity.KEY_PREF_TEXT_TO_SPEECH);
     }
