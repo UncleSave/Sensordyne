@@ -18,7 +18,6 @@
         android:label="@string/app_name"
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
-        android:debuggable="false"
         android:theme="@style/AppTheme">
         <service
             android:name="com.amazonaws.mobileconnectors.s3.transferutility.TransferService"
@@ -27,6 +26,7 @@
         <activity
             android:name=".MainActivity"
             android:label="@string/app_name"
+            android:screenOrientation="portrait"
             android:theme="@style/AppTheme.NoActionBar">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
@@ -37,6 +37,7 @@
         <activity
             android:name=".CheckSensorActivity"
             android:label="Check Sensor"
+            android:screenOrientation="portrait"
             android:parentActivityName=".MainActivity">
             <meta-data
                 android:name="android.support.PARENT_ACTIVITY"
@@ -45,6 +46,7 @@
         <activity
             android:name=".DeviceInfoActivity"
             android:label="Device Info"
+            android:screenOrientation="portrait"
             android:parentActivityName=".MainActivity">
             <meta-data
                 android:name="android.support.PARENT_ACTIVITY"
@@ -53,6 +55,7 @@
         <activity
             android:name=".ManageFileActivity"
             android:label="Delete Dataset"
+            android:screenOrientation="portrait"
             android:parentActivityName=".MainActivity">
             <meta-data
                 android:name="android.support.PARENT_ACTIVITY"
@@ -61,6 +64,7 @@
         <activity
             android:name=".BuildModelActivity"
             android:label="Build Model"
+            android:screenOrientation="portrait"
             android:parentActivityName=".MainActivity">
             <meta-data
                 android:name="android.support.PARENT_ACTIVITY"
@@ -69,6 +73,7 @@
         <activity
             android:name=".NetworkSettingsActivity"
             android:label="Model and Neural Network Settings"
+            android:screenOrientation="portrait"
             android:parentActivityName=".MainActivity">
             <meta-data
                 android:name="android.support.PARENT_ACTIVITY"
@@ -77,6 +82,7 @@
         <activity
             android:name=".SettingsActivity"
             android:label="Settings"
+            android:screenOrientation="portrait"
             android:parentActivityName=".MainActivity">
             <meta-data
                 android:name="android.support.PARENT_ACTIVITY"
@@ -85,6 +91,7 @@
         <activity
             android:name=".PredictLabelActivity"
             android:label="Predict Gesture"
+            android:screenOrientation="portrait"
             android:parentActivityName=".PredictLabelActivity">
             <meta-data
                 android:name="android.support.PARENT_ACTIVITY"

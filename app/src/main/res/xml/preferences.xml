@@ -17,7 +17,8 @@
         android:summary="Keep track of the magnetic field data"
         android:title="Magnetic field data" />
     <android.support.v7.preference.SwitchPreferenceCompat
-        android:defaultValue="true"
+        android:defaultValue="false"
+        android:enabled="false"
         android:key="orientation_switch"
         android:summary="Keep track of the device orientation data"
         android:title="Device orientation data" />
@@ -27,7 +28,7 @@
         android:summary="Keep track of the gravity data"
         android:title="Gravity data" />
     <android.support.v7.preference.SwitchPreferenceCompat
-        android:defaultValue="true"
+        android:defaultValue="false"
         android:key="linear_accelerometer_switch"
         android:summary="Keep track of the linear accelerometer data"
         android:title="Linear accelerometer data" />
@@ -51,7 +52,8 @@
         android:selectAllOnFocus="true"
         android:singleLine="true"
         android:summary="Set the logging interval for collection process"
-        android:title="Log data interval (millisecond)" />
+        android:title="Log data interval (millisecond)"
+        android:dependency="log_timer_switch" />
     <unclesave.example.com.test2.IntEditTextPreference
         android:defaultValue="5000"
         android:key="sensor_sampling_delay"

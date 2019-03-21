@@ -1,11 +1,13 @@
 package unclesave.example.com.test2;
 
-import android.app.AlertDialog;
+import android.Manifest;
 import android.app.DialogFragment;
+import android.app.Fragment;
+import android.app.FragmentTransaction;
 import android.content.Context;
-import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.content.pm.PackageManager;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteStatement;
@@ -20,7 +22,11 @@ import android.os.Bundle;
 import android.os.Environment;
 import android.provider.Settings;
 import android.speech.tts.TextToSpeech;
+import android.support.annotation.NonNull;
 import android.support.design.widget.NavigationView;
+import android.support.v4.app.ActivityCompat;
+import android.support.v4.content.ContextCompat;
+import android.support.v4.content.PermissionChecker;
 import android.support.v4.view.GravityCompat;
 import android.support.v4.widget.DrawerLayout;
 import android.support.v7.app.ActionBarDrawerToggle;
@@ -55,6 +61,7 @@ import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.lang.ref.WeakReference;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
@@ -64,17 +71,20 @@ import java.util.Random;
 import java.util.Timer;
 import java.util.TimerTask;
 
+
 // AWS Mobile hub backend integration
 
 public class MainActivity extends AppCompatActivity
         implements NavigationView.OnNavigationItemSelectedListener, SensorEventListener {
 
+    private static final int PERMISSION_ALL = 1;
     private SensorManager sensorManager;
     private Sensor gyroscope, accelerometer, magnetometer, gravmeter, linearaccelerometer, proximity;
     private boolean gyroSwitchPref, accSwitchPref, magSwitchPref, gravSwitchPref, orientationSwitchPref,
             linearAccSwitchPref, proximitySwitchPref, textToSpeechSwitchPref, logTimerSwitchPref;
     private int timeLabelIntervalPref, timeLoggingIntervalPref, sensorSamplingDelayPref;
     private String collectModePref, timerModePref;
+    private boolean linearaccUnsupported;
     //private TextView gyroscopeInfo, accelerometerInfo;
     private Button exportCloudButton, localCSVButton;
     private TextView labelInstruct;
@@ -96,7 +106,6 @@ public class MainActivity extends AppCompatActivity
     private float r[];
     private long timeStamp;
     private SQLiteDatabase sensorDataDB = null;
-    private File outputFile;
     private ArrayList<String> labels = new ArrayList<>();
     private ArrayList<Integer> indexForLabel = new ArrayList<>();
     private Iterator<Integer> integerIterator;
@@ -105,16 +114,16 @@ public class MainActivity extends AppCompatActivity
     private StringBuilder insertCommand = new StringBuilder();
     private SQLiteStatement insert;
     private Timer collectTimer, logTimer;
-    private TimerTask collectTimerTask, logTimerTask;
     private TextToSpeech tts;
+    private CustomDialogFragment permissionDialog = null;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-
+        responseToNoPermission();
+        permissionDialog = null;
         responseToNoInternetAccess();
-        responseToNoStoragePermission();
         // AWS Mobile hub backend integration
         AWSMobileClient.getInstance().initialize(this, new AWSStartupHandler() {
             @Override
@@ -191,33 +200,42 @@ public class MainActivity extends AppCompatActivity
                 (SettingsActivity.KEY_PREF_TEXT_TO_SPEECH, false);
         androidID = Settings.Secure.getString(getContentResolver(),
                 Settings.Secure.ANDROID_ID);
-        sensorManager = (SensorManager)getSystemService(Context.SENSOR_SERVICE);
-        if (gyroSwitchPref) {
-            gyroscope = sensorManager.getDefaultSensor(Sensor.TYPE_GYROSCOPE);
-            gyroscopeVal = new float[3];
+        sensorManager = (SensorManager)getSystemService(SENSOR_SERVICE);
+        if (sensorManager != null) {
+            if (gyroSwitchPref) {
+                gyroscope = sensorManager.getDefaultSensor(Sensor.TYPE_GYROSCOPE);
+                gyroscopeVal = new float[3];
+            }
+            if (accSwitchPref) {
+                accelerometer = sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER);
+                acceleroVal = new float[3];
+            }
+            if (magSwitchPref) {
+                magnetometer = sensorManager.getDefaultSensor(Sensor.TYPE_MAGNETIC_FIELD);
+                magnetoVal = new float[3];
+            }
+            if (gravSwitchPref) {
+                gravmeter = sensorManager.getDefaultSensor(Sensor.TYPE_GRAVITY);
+                gravVal = new float[3];
+            }
+            if (linearAccSwitchPref) {
+                linearaccelerometer = sensorManager.getDefaultSensor(Sensor.TYPE_LINEAR_ACCELERATION);
+                linearaccUnsupported = (linearaccelerometer == null);
+                if (!linearaccUnsupported)
+                    linearAcceleroVal = new float[3];
+            }
+            if (orientationSwitchPref) {
+                orientationVal = new float[3];
+                r = new float[9];
+            }
+            if (proximitySwitchPref)
+                proximity = sensorManager.getDefaultSensor(Sensor.TYPE_PROXIMITY);
+        } else {
+            Log.e("Sensor Manager", "Null pointer exception");
+            CustomDialogFragment sensorManagerDialog = CustomDialogFragment.newInstance(103);
+            sensorManagerDialog.show(getFragmentManager(), "dialog");
+            //createAlertDialog("Cannot start sensor manager");
         }
-        if (accSwitchPref) {
-            accelerometer = sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER);
-            acceleroVal = new float[3];
-        }
-        if (magSwitchPref) {
-            magnetometer = sensorManager.getDefaultSensor(Sensor.TYPE_MAGNETIC_FIELD);
-            magnetoVal = new float[3];
-        }
-        if (gravSwitchPref) {
-            gravmeter = sensorManager.getDefaultSensor(Sensor.TYPE_GRAVITY);
-            gravVal = new float[3];
-        }
-        if (linearAccSwitchPref) {
-            linearaccelerometer = sensorManager.getDefaultSensor(Sensor.TYPE_LINEAR_ACCELERATION);
-            linearAcceleroVal = new float[3];
-        }
-        if (orientationSwitchPref) {
-            orientationVal = new float[3];
-            r = new float[9];
-        }
-        if (proximitySwitchPref)
-            proximity = sensorManager.getDefaultSensor(Sensor.TYPE_PROXIMITY);
         exportCloudButton = findViewById(R.id.export_button);
         localCSVButton = findViewById(R.id.local_csv_button);
         labelInstruct = findViewById(R.id.label_instruct);
@@ -416,7 +434,8 @@ public class MainActivity extends AppCompatActivity
         timeStamp = event.timestamp;
 
         if (!logTimerSwitchPref) {
-            new AsyncTask<Void, Void, Void>() {
+            new loggingTask(this).execute();
+            /*new AsyncTask<Void, Void, Void>() {
                 @Override
                 protected Void doInBackground(Void... voids) {
                     if (collectStatus && !label.equals("")) {
@@ -449,9 +468,15 @@ public class MainActivity extends AppCompatActivity
                             insert.bindDouble(index++, gravVal[2]);
                         }
                         if (linearAccSwitchPref) {
-                            insert.bindDouble(index++, linearAcceleroVal[0]);
-                            insert.bindDouble(index++, linearAcceleroVal[1]);
-                            insert.bindDouble(index++, linearAcceleroVal[2]);
+                            if (!linearaccUnsupported) {
+                                insert.bindDouble(index++, linearAcceleroVal[0]);
+                                insert.bindDouble(index++, linearAcceleroVal[1]);
+                                insert.bindDouble(index++, linearAcceleroVal[2]);
+                            } else {
+                                insert.bindDouble(index++, acceleroVal[0] - gravVal[0]);
+                                insert.bindDouble(index++, acceleroVal[1] - gravVal[1]);
+                                insert.bindDouble(index++, acceleroVal[2] - gravVal[2]);
+                            }
                         }
                         if (proximitySwitchPref)
                             insert.bindLong(index++, proximityVal);
@@ -459,43 +484,228 @@ public class MainActivity extends AppCompatActivity
                     }
                     return null;
                 }
-            }.execute();
+            }.execute();*/
         }
     }
+
+    private static class loggingTask extends AsyncTask<Void, Void, Void> {
+        private WeakReference<MainActivity> activityReference;
+
+        // only retain a weak reference to the activity
+        loggingTask(MainActivity context) {
+            activityReference = new WeakReference<>(context);
+        }
+
+        @Override
+        protected Void doInBackground(Void... voids) {
+            if (activityReference.get().collectStatus && !activityReference.get().label.equals("")) {
+                int index = 1;
+                activityReference.get().insert.bindLong(index++, activityReference.get().timeStamp);
+                activityReference.get().insert.bindString(index++, activityReference.get().label);
+                if (activityReference.get().gyroSwitchPref) {
+                    activityReference.get().insert.bindDouble(index++, activityReference.get().gyroscopeVal[0]);
+                    activityReference.get().insert.bindDouble(index++, activityReference.get().gyroscopeVal[1]);
+                    activityReference.get().insert.bindDouble(index++, activityReference.get().gyroscopeVal[2]);
+                }
+                if (activityReference.get().accSwitchPref) {
+                    activityReference.get().insert.bindDouble(index++, activityReference.get().acceleroVal[0]);
+                    activityReference.get().insert.bindDouble(index++, activityReference.get().acceleroVal[1]);
+                    activityReference.get().insert.bindDouble(index++, activityReference.get().acceleroVal[2]);
+                }
+                if (activityReference.get().magSwitchPref) {
+                    activityReference.get().insert.bindDouble(index++, activityReference.get().magnetoVal[0]);
+                    activityReference.get().insert.bindDouble(index++, activityReference.get().magnetoVal[1]);
+                    activityReference.get().insert.bindDouble(index++, activityReference.get().magnetoVal[2]);
+                }
+                if (activityReference.get().orientationSwitchPref) {
+                    activityReference.get().insert.bindDouble(index++, activityReference.get().orientationVal[0]);
+                    activityReference.get().insert.bindDouble(index++, activityReference.get().orientationVal[1]);
+                    activityReference.get().insert.bindDouble(index++, activityReference.get().orientationVal[2]);
+                }
+                if (activityReference.get().gravSwitchPref) {
+                    activityReference.get().insert.bindDouble(index++, activityReference.get().gravVal[0]);
+                    activityReference.get().insert.bindDouble(index++, activityReference.get().gravVal[1]);
+                    activityReference.get().insert.bindDouble(index++, activityReference.get().gravVal[2]);
+                }
+                if (activityReference.get().linearAccSwitchPref) {
+                    if (!activityReference.get().linearaccUnsupported) {
+                        activityReference.get().insert.bindDouble(index++, activityReference.get().linearAcceleroVal[0]);
+                        activityReference.get().insert.bindDouble(index++, activityReference.get().linearAcceleroVal[1]);
+                        activityReference.get().insert.bindDouble(index++, activityReference.get().linearAcceleroVal[2]);
+                    } else {
+                        activityReference.get().insert.bindDouble(index++,
+                                activityReference.get().acceleroVal[0] - activityReference.get().gravVal[0]);
+                        activityReference.get().insert.bindDouble(index++, activityReference.get().acceleroVal[1] -
+                                activityReference.get().gravVal[1]);
+                        activityReference.get().insert.bindDouble(index++, activityReference.get().acceleroVal[2] -
+                                activityReference.get().gravVal[2]);
+                    }
+                }
+                if (activityReference.get().proximitySwitchPref)
+                    activityReference.get().insert.bindLong(index, activityReference.get().proximityVal);
+                activityReference.get().insert.execute();
+            }
+            return null;
+        }
+    }
+
+    /*private void createAlertDialog(String errorMsg) {
+        AlertDialog.Builder alertDialogBuilder = new AlertDialog.Builder(this);
+        alertDialogBuilder.setMessage(errorMsg);
+        alertDialogBuilder.setPositiveButton("Close",
+                new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface arg0, int arg1) {
+                        finish();
+                    }
+                });
+        alertDialogBuilder.setOnCancelListener(new DialogInterface.OnCancelListener() {
+            @Override
+            public void onCancel(DialogInterface dialog) {
+                // if back button is pressed
+                finish();
+            }
+        });
+        AlertDialog alertDialog = alertDialogBuilder.create();
+        alertDialog.setCanceledOnTouchOutside(false);
+        alertDialog.show();
+    }
+
+    private void createPermissionDialog(String errorMsg) {
+        permissionDialog = new AlertDialog.Builder(this);
+        permissionDialog.setMessage(errorMsg);
+        permissionDialog.setPositiveButton("Ok",
+                new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface arg0, int arg1) {
+                        responseToNoPermission();
+                    }
+                });
+        permissionDialog.setOnCancelListener(new DialogInterface.OnCancelListener() {
+            @Override
+            public void onCancel(DialogInterface dialog) {
+                // if back button is pressed
+                finish();
+            }
+        });
+        AlertDialog alertDialog = permissionDialog.create();
+        alertDialog.setCanceledOnTouchOutside(false);
+        alertDialog.show();
+    }
+
+    private void createSettingsDialog(String errorMsg) {
+        AlertDialog.Builder alertDialogBuilder = new AlertDialog.Builder(this);
+        alertDialogBuilder.setMessage(errorMsg);
+        alertDialogBuilder.setPositiveButton("Open Settings",
+                new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface arg0, int arg1) {
+                        Intent intent = new Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS);
+                        Uri uri = Uri.fromParts("package", getPackageName(), null);
+                        intent.setData(uri);
+                        startActivityForResult(intent, 100);
+                    }
+                });
+        alertDialogBuilder.setOnCancelListener(new DialogInterface.OnCancelListener() {
+            @Override
+            public void onCancel(DialogInterface dialog) {
+                // if back button is pressed
+                finish();
+            }
+        });
+        AlertDialog alertDialog = alertDialogBuilder.create();
+        alertDialog.setCanceledOnTouchOutside(false);
+        alertDialog.show();
+    }*/
 
     @Override
     public void onAccuracyChanged(Sensor sensor, int accuracy) {
     }
 
-    // Checks if external storage is available for read and write
-    private boolean isExternalStorageWritable() {
-        String state = Environment.getExternalStorageState();
-        if (Environment.MEDIA_MOUNTED.equals(state))
-            return true;
-        return false;
+    @Override
+    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
+        switch (requestCode) {
+            case PERMISSION_ALL:
+                for (int i = 0; i < grantResults.length; i++) {
+                    if (grantResults[i] == PackageManager.PERMISSION_DENIED) {
+                        if (!ActivityCompat.shouldShowRequestPermissionRationale(this,
+                                permissions[i])) {
+                            CustomDialogFragment permissionSettingsDialog = CustomDialogFragment.newInstance(100);
+                            permissionSettingsDialog.show(getFragmentManager(), "dialog");
+                        }
+                            //createSettingsDialog("You have denied some permissions previously, please enable it in setting.");
+                        else {
+                            if (permissionDialog == null) {
+                                permissionDialog = CustomDialogFragment.newInstance(101);
+                                permissionDialog.show(getFragmentManager(), "dialog");
+                            }
+                                //createPermissionDialog("You need to give permission.");
+                        }
+                    }
+                }
+                break;
+            default: break;
+        }
     }
 
-    private void responseToNoStoragePermission() {
-        if (!isExternalStorageWritable()) {
-            AlertDialog.Builder alertDialogBuilder = new AlertDialog.Builder(this);
-            alertDialogBuilder.setMessage("Please enable storage permission");
-            alertDialogBuilder.setPositiveButton("Close",
-                    new DialogInterface.OnClickListener() {
-                        @Override
-                        public void onClick(DialogInterface arg0, int arg1) {
-                            finish();
-                        }
-                    });
-            alertDialogBuilder.setOnCancelListener(new DialogInterface.OnCancelListener() {
-                @Override
-                public void onCancel(DialogInterface dialog) {
-                    // if back button is pressed
-                    finish();
-                }
-            });
-            AlertDialog alertDialog = alertDialogBuilder.create();
-            alertDialog.setCanceledOnTouchOutside(false);
-            alertDialog.show();
+    private String[] convertArrayListStringToStringOfArray(ArrayList<String> source) {
+        String[] result = new String[source.size()];
+        for (int i = 0; i < source.size(); i++)
+            result[i] = source.get(i);
+        return result;
+    }
+
+    public void responseToNoPermission() {
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.M) {
+            ArrayList<String> permissionsNeeded = new ArrayList<>();
+            if (ContextCompat.checkSelfPermission(this, Manifest.permission.INTERNET)
+                    != PackageManager.PERMISSION_GRANTED)
+                permissionsNeeded.add(Manifest.permission.INTERNET);
+            if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_WIFI_STATE)
+                    != PackageManager.PERMISSION_GRANTED)
+                permissionsNeeded.add(Manifest.permission.ACCESS_WIFI_STATE);
+            if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_NETWORK_STATE)
+                    != PackageManager.PERMISSION_GRANTED)
+                permissionsNeeded.add(Manifest.permission.ACCESS_NETWORK_STATE);
+            if (ContextCompat.checkSelfPermission(this, Manifest.permission.READ_EXTERNAL_STORAGE)
+                    != PackageManager.PERMISSION_GRANTED)
+                permissionsNeeded.add(Manifest.permission.READ_EXTERNAL_STORAGE);
+            if (ContextCompat.checkSelfPermission(this, Manifest.permission.WRITE_EXTERNAL_STORAGE)
+                    != PackageManager.PERMISSION_GRANTED)
+                permissionsNeeded.add(Manifest.permission.WRITE_EXTERNAL_STORAGE);
+            if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION)
+                    != PackageManager.PERMISSION_GRANTED)
+                permissionsNeeded.add(Manifest.permission.ACCESS_FINE_LOCATION);
+
+            if (permissionsNeeded.size() != 0)
+                ActivityCompat.requestPermissions(this,
+                        convertArrayListStringToStringOfArray(permissionsNeeded),
+                        PERMISSION_ALL);
+        } else {
+            if (PermissionChecker.checkSelfPermission(this, Manifest.permission.INTERNET)
+                    != PermissionChecker.PERMISSION_GRANTED) {
+
+            }
+            if (PermissionChecker.checkSelfPermission(this, Manifest.permission.ACCESS_WIFI_STATE)
+                    != PermissionChecker.PERMISSION_GRANTED) {
+
+            }
+            if (PermissionChecker.checkSelfPermission(this, Manifest.permission.ACCESS_NETWORK_STATE)
+                    != PermissionChecker.PERMISSION_GRANTED) {
+
+            }
+            if (PermissionChecker.checkSelfPermission(this, Manifest.permission.READ_EXTERNAL_STORAGE)
+                    != PermissionChecker.PERMISSION_GRANTED) {
+
+            }
+            if (PermissionChecker.checkSelfPermission(this, Manifest.permission.WRITE_EXTERNAL_STORAGE)
+                    != PermissionChecker.PERMISSION_GRANTED) {
+
+            }
+            if (PermissionChecker.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION)
+                    != PermissionChecker.PERMISSION_GRANTED) {
+
+            }
         }
     }
 
@@ -504,32 +714,22 @@ public class MainActivity extends AppCompatActivity
         // Checks whether wifi or mobile data is connected
         ConnectivityManager cm =
                 (ConnectivityManager) this.getSystemService(Context.CONNECTIVITY_SERVICE);
-        NetworkInfo activeNetwork = cm.getActiveNetworkInfo();
+        NetworkInfo activeNetwork;
+        if (cm != null)
+            activeNetwork = cm.getActiveNetworkInfo();
+        else {
+            Log.e("Network error", "Cannot get network info");
+            return false;
+        }
         return activeNetwork != null && activeNetwork.isConnectedOrConnecting();
     }
 
     private void responseToNoInternetAccess() {
         if (!isInternetAccessAvailable()) {
-            AlertDialog.Builder alertDialogBuilder = new AlertDialog.Builder(this);
-            alertDialogBuilder.setMessage("Please enable wifi or mobile data");
-            alertDialogBuilder.setPositiveButton("Close",
-                    new DialogInterface.OnClickListener() {
-                        @Override
-                        public void onClick(DialogInterface arg0, int arg1) {
-                            finish();
-                        }
-                    });
-            alertDialogBuilder.setOnCancelListener(new DialogInterface.OnCancelListener() {
-                @Override
-                public void onCancel(DialogInterface dialog) {
-                    // if back button is pressed
-                    finish();
-                }
-            });
-            AlertDialog alertDialog = alertDialogBuilder.create();
-            alertDialog.setCanceledOnTouchOutside(false);
-            alertDialog.show();
+            CustomDialogFragment internetAccessDialog = CustomDialogFragment.newInstance(102);
+            internetAccessDialog.show(getFragmentManager(), null);
         }
+            //createAlertDialog("Please enable wifi or mobile data");
     }
 
     public void onListener() {
@@ -545,7 +745,7 @@ public class MainActivity extends AppCompatActivity
         if (gravSwitchPref)
             sensorManager.registerListener(this, gravmeter,
                     sensorSamplingDelayPref);
-        if (linearAccSwitchPref)
+        if (linearAccSwitchPref && !linearaccUnsupported)
             sensorManager.registerListener(this, linearaccelerometer,
                     sensorSamplingDelayPref);
         if (proximitySwitchPref)
@@ -562,7 +762,7 @@ public class MainActivity extends AppCompatActivity
             sensorManager.unregisterListener(this, magnetometer);
         if (gravSwitchPref)
             sensorManager.unregisterListener(this, gravmeter);
-        if (linearAccSwitchPref)
+        if (linearAccSwitchPref && !linearaccUnsupported)
             sensorManager.unregisterListener(this, linearaccelerometer);
         if (proximitySwitchPref)
             sensorManager.unregisterListener(this, proximity);
@@ -610,7 +810,7 @@ public class MainActivity extends AppCompatActivity
             sensorDataDB.execSQL(createCommand.toString());
             sensorDataDB.setTransactionSuccessful();
             sensorDataDB.endTransaction();
-            outputFile = getApplicationContext().getDatabasePath("CurInstSensorDB");
+            File outputFile = getApplicationContext().getDatabasePath("CurInstSensorDB");
             if (outputFile.exists())
                 Toast.makeText(this, "Database created", Toast.LENGTH_SHORT).show();
             else
@@ -630,7 +830,7 @@ public class MainActivity extends AppCompatActivity
     }
 
     public void clearLabel(View view) {
-        labelListInfo.setText("List of labels: ");
+        labelListInfo.setText(R.string.list_of_labels);
         labels.clear();
     }
 
@@ -660,7 +860,7 @@ public class MainActivity extends AppCompatActivity
             try {
                 collectTimer = new Timer();
                 logTimer = new Timer();
-                collectTimerTask = new TimerTask() {
+                TimerTask collectTimerTask = new TimerTask() {
                     @Override
                     public void run() {
                         int nextLabel;
@@ -685,16 +885,17 @@ public class MainActivity extends AppCompatActivity
                             nextLabel = integerIterator.next();
                         }
                         label = labels.get(nextLabel);
-                        if (textToSpeechSwitchPref)
-                            speak(label);
                         runOnUiThread(new Runnable() {
                             @Override
                             public void run() {
+                                if (textToSpeechSwitchPref)
+                                    speak(label);
                                 automatedEventInfo.setText("Show label: " + label);
                             }
                         });
                     }
                 };
+                TimerTask logTimerTask = null;
                 if (logTimerSwitchPref) {
                     logTimerTask = new TimerTask() {
                         @Override
@@ -729,12 +930,18 @@ public class MainActivity extends AppCompatActivity
                                     insert.bindDouble(index++, gravVal[2]);
                                 }
                                 if (linearAccSwitchPref) {
-                                    insert.bindDouble(index++, linearAcceleroVal[0]);
-                                    insert.bindDouble(index++, linearAcceleroVal[1]);
-                                    insert.bindDouble(index++, linearAcceleroVal[2]);
+                                    if (!linearaccUnsupported) {
+                                        insert.bindDouble(index++, linearAcceleroVal[0]);
+                                        insert.bindDouble(index++, linearAcceleroVal[1]);
+                                        insert.bindDouble(index++, linearAcceleroVal[2]);
+                                    } else {
+                                        insert.bindDouble(index++, acceleroVal[0] - gravVal[0]);
+                                        insert.bindDouble(index++, acceleroVal[1] - gravVal[1]);
+                                        insert.bindDouble(index++, acceleroVal[2] - gravVal[2]);
+                                    }
                                 }
                                 if (proximitySwitchPref)
-                                    insert.bindLong(index++, proximityVal);
+                                    insert.bindLong(index, proximityVal);
                                 insert.execute();
                             }
                         }
@@ -874,11 +1081,6 @@ public class MainActivity extends AppCompatActivity
     }
 
     public void getLocalCSV(View view) {
-        // Check write external storage permission
-        if (!isExternalStorageWritable()) {
-            Toast.makeText(this, "Storage permission denied", Toast.LENGTH_SHORT).show();
-            return;
-        }
         File srcFile = new File(getApplicationContext().getFilesDir(), "output.csv");
         if (srcFile.exists()) {
             new AsyncTask<File, Void, File>() {
@@ -974,9 +1176,7 @@ public class MainActivity extends AppCompatActivity
 
             Log.d("YourActivity", "Bytes Transferred: " + uploadObserver.getBytesTransferred());
             Log.d("YourActivity", "Bytes Total: " + uploadObserver.getBytesTotal());
-        } else {
+        } else
             Toast.makeText(this, "File does not exist", Toast.LENGTH_SHORT).show();
-        }
-        return;
     }
 }

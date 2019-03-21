@@ -14,4 +14,9 @@
         <item>Schedule</item>
         <item>ScheduleAtFixedRate</item>
     </array>
+
+    <array name="orientation_dependency">
+        <item>accelerometer_switch</item>
+        <item>magnetometer_switch</item>
+    </array>
 </resources>
