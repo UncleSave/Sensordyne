@@ -1,9 +1,7 @@
 package unclesave.example.com.test2;
 
 import android.Manifest;
-import android.app.DialogFragment;
-import android.app.Fragment;
-import android.app.FragmentTransaction;
+import android.app.ProgressDialog;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
@@ -26,7 +24,6 @@ import android.support.annotation.NonNull;
 import android.support.design.widget.NavigationView;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.content.ContextCompat;
-import android.support.v4.content.PermissionChecker;
 import android.support.v4.view.GravityCompat;
 import android.support.v4.widget.DrawerLayout;
 import android.support.v7.app.ActionBarDrawerToggle;
@@ -78,13 +75,16 @@ public class MainActivity extends AppCompatActivity
         implements NavigationView.OnNavigationItemSelectedListener, SensorEventListener {
 
     private static final int PERMISSION_ALL = 1;
+    private float cutoffFrequency = 0.3f;
+    private int accFilterCount = 0;
+    private long accTimeStamp;
     private SensorManager sensorManager;
     private Sensor gyroscope, accelerometer, magnetometer, gravmeter, linearaccelerometer, proximity;
     private boolean gyroSwitchPref, accSwitchPref, magSwitchPref, gravSwitchPref, orientationSwitchPref,
-            linearAccSwitchPref, proximitySwitchPref, textToSpeechSwitchPref, logTimerSwitchPref;
+            linearAccSwitchPref, proximitySwitchPref, textToSpeechSwitchPref, logTimerSwitchPref, lpfLinearAccCheckBoxPref;
     private int timeLabelIntervalPref, timeLoggingIntervalPref, sensorSamplingDelayPref;
     private String collectModePref, timerModePref;
-    private boolean linearaccUnsupported;
+    private boolean linearAccUnsupported;
     //private TextView gyroscopeInfo, accelerometerInfo;
     private Button exportCloudButton, localCSVButton;
     private TextView labelInstruct;
@@ -110,6 +110,7 @@ public class MainActivity extends AppCompatActivity
     private ArrayList<Integer> indexForLabel = new ArrayList<>();
     private Iterator<Integer> integerIterator;
     private boolean collectStatus = false;
+    private boolean gravEmpty = true, accEmpty = true;
     private String label = "";
     private StringBuilder insertCommand = new StringBuilder();
     private SQLiteStatement insert;
@@ -182,6 +183,8 @@ public class MainActivity extends AppCompatActivity
                 (SettingsActivity.KEY_PREF_GRAVITY_SWITCH, false);
         linearAccSwitchPref = sharedPref.getBoolean
                 (SettingsActivity.KEY_PREF_LINEAR_ACCELEROMETER_SWITCH, false);
+        lpfLinearAccCheckBoxPref = sharedPref.getBoolean
+                (SettingsActivity.KEY_PREF_LPF_LINEAR_ACC_SWITCH, false);
         proximitySwitchPref = sharedPref.getBoolean
                 (SettingsActivity.KEY_PREF_PROXIMITY_SWITCH, false);
         timeLabelIntervalPref = sharedPref.getInt
@@ -206,7 +209,9 @@ public class MainActivity extends AppCompatActivity
                 gyroscope = sensorManager.getDefaultSensor(Sensor.TYPE_GYROSCOPE);
                 gyroscopeVal = new float[3];
             }
-            if (accSwitchPref) {
+            if (accSwitchPref
+                    || (linearAccSwitchPref && linearAccUnsupported)
+                    || (linearAccSwitchPref && !linearAccUnsupported && lpfLinearAccCheckBoxPref)) {
                 accelerometer = sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER);
                 acceleroVal = new float[3];
             }
@@ -214,15 +219,17 @@ public class MainActivity extends AppCompatActivity
                 magnetometer = sensorManager.getDefaultSensor(Sensor.TYPE_MAGNETIC_FIELD);
                 magnetoVal = new float[3];
             }
-            if (gravSwitchPref) {
+            if (gravSwitchPref
+                    || (linearAccSwitchPref && linearAccUnsupported)
+                    || (linearAccSwitchPref && !linearAccUnsupported && lpfLinearAccCheckBoxPref)) {
                 gravmeter = sensorManager.getDefaultSensor(Sensor.TYPE_GRAVITY);
                 gravVal = new float[3];
             }
             if (linearAccSwitchPref) {
                 linearaccelerometer = sensorManager.getDefaultSensor(Sensor.TYPE_LINEAR_ACCELERATION);
-                linearaccUnsupported = (linearaccelerometer == null);
-                if (!linearaccUnsupported)
-                    linearAcceleroVal = new float[3];
+                linearAccUnsupported = (linearaccelerometer == null);
+                //if (!linearAccUnsupported && !lpfLinearAccCheckBoxPref) // use system linear acceleration
+                linearAcceleroVal = new float[3];
             }
             if (orientationSwitchPref) {
                 orientationVal = new float[3];
@@ -359,8 +366,8 @@ public class MainActivity extends AppCompatActivity
                 finish();
                 startActivity(getSettingsIntent);
                 return true;
-            case R.id.action_about: DialogFragment aboutMeFragment = new AboutMeFragment();
-                aboutMeFragment.show(getFragmentManager(), "aboutMeDialog");
+            case R.id.action_about: CustomDialogFragment aboutMeFragment = CustomDialogFragment.newInstance(1);
+                aboutMeFragment.show(getFragmentManager(), null);
                 return true;
             case R.id.action_exit: finish();
                 return true;
@@ -406,32 +413,56 @@ public class MainActivity extends AppCompatActivity
 
     @Override
     public void onSensorChanged(SensorEvent event) {
+        if (gravEmpty || accEmpty) {
+            gravEmpty = (gravVal[0] == 0.0f && gravVal[1] == 0.0f && gravVal[2] == 0.0f) ? true : false;
+            accEmpty = (acceleroVal[0] == 0.0f && acceleroVal[1] == 0.0f && acceleroVal[2] == 0.0f) ? true : false;
+        }
         int sensorType = event.sensor.getType();
         switch (sensorType) {
             case Sensor.TYPE_GYROSCOPE:
                 System.arraycopy(event.values, 0, gyroscopeVal, 0, event.values.length);
                 break;
             case Sensor.TYPE_ACCELEROMETER:
+                if (linearAccSwitchPref && lpfLinearAccCheckBoxPref) {
+                    if (!gravEmpty && !accEmpty) {
+                        float[] helperGravVal = lowPassFilter(event.timestamp, gravVal);
+                        linearAcceleroVal[0] = event.values[0] - helperGravVal[0];
+                        linearAcceleroVal[1] = event.values[1] - helperGravVal[1];
+                        linearAcceleroVal[2] = event.values[2] - helperGravVal[2];
+                    }
+                }
                 System.arraycopy(event.values, 0, acceleroVal, 0, event.values.length);
+                timeStamp = event.timestamp;
+                accTimeStamp = timeStamp;
                 break;
             case Sensor.TYPE_MAGNETIC_FIELD:
                 System.arraycopy(event.values, 0, magnetoVal, 0, event.values.length);
+                timeStamp = event.timestamp;
                 break;
             case Sensor.TYPE_GRAVITY:
                 System.arraycopy(event.values, 0, gravVal, 0, event.values.length);
+                timeStamp = event.timestamp;
                 break;
             case Sensor.TYPE_LINEAR_ACCELERATION:
                 System.arraycopy(event.values, 0, linearAcceleroVal, 0, event.values.length);
+                timeStamp = event.timestamp;
+                break;
             case Sensor.TYPE_PROXIMITY:
                 proximityVal = (event.values[0] == 0.0f)? 0L: 1L;
+                timeStamp = event.timestamp;
                 break;
             default: break;
         }
+        if (linearAccSwitchPref && linearAccUnsupported && !lpfLinearAccCheckBoxPref) {
+            linearAcceleroVal[0] = event.values[0] - gravVal[0];
+            linearAcceleroVal[1] = event.values[1] - gravVal[1];
+            linearAcceleroVal[2] = event.values[2] - gravVal[2];
+        }
+
         if (accSwitchPref && magSwitchPref && orientationSwitchPref) {
             SensorManager.getRotationMatrix(r, null, acceleroVal, magnetoVal);
             SensorManager.getOrientation(r, orientationVal);
         }
-        timeStamp = event.timestamp;
 
         if (!logTimerSwitchPref) {
             new loggingTask(this).execute();
@@ -528,7 +559,10 @@ public class MainActivity extends AppCompatActivity
                     activityReference.get().insert.bindDouble(index++, activityReference.get().gravVal[2]);
                 }
                 if (activityReference.get().linearAccSwitchPref) {
-                    if (!activityReference.get().linearaccUnsupported) {
+                    activityReference.get().insert.bindDouble(index++, activityReference.get().linearAcceleroVal[0]);
+                    activityReference.get().insert.bindDouble(index++, activityReference.get().linearAcceleroVal[1]);
+                    activityReference.get().insert.bindDouble(index++, activityReference.get().linearAcceleroVal[2]);
+                    /*if (!activityReference.get().linearAccUnsupported) {
                         activityReference.get().insert.bindDouble(index++, activityReference.get().linearAcceleroVal[0]);
                         activityReference.get().insert.bindDouble(index++, activityReference.get().linearAcceleroVal[1]);
                         activityReference.get().insert.bindDouble(index++, activityReference.get().linearAcceleroVal[2]);
@@ -539,7 +573,7 @@ public class MainActivity extends AppCompatActivity
                                 activityReference.get().gravVal[1]);
                         activityReference.get().insert.bindDouble(index++, activityReference.get().acceleroVal[2] -
                                 activityReference.get().gravVal[2]);
-                    }
+                    }*/
                 }
                 if (activityReference.get().proximitySwitchPref)
                     activityReference.get().insert.bindLong(index, activityReference.get().proximityVal);
@@ -549,74 +583,20 @@ public class MainActivity extends AppCompatActivity
         }
     }
 
-    /*private void createAlertDialog(String errorMsg) {
-        AlertDialog.Builder alertDialogBuilder = new AlertDialog.Builder(this);
-        alertDialogBuilder.setMessage(errorMsg);
-        alertDialogBuilder.setPositiveButton("Close",
-                new DialogInterface.OnClickListener() {
-                    @Override
-                    public void onClick(DialogInterface arg0, int arg1) {
-                        finish();
-                    }
-                });
-        alertDialogBuilder.setOnCancelListener(new DialogInterface.OnCancelListener() {
-            @Override
-            public void onCancel(DialogInterface dialog) {
-                // if back button is pressed
-                finish();
-            }
-        });
-        AlertDialog alertDialog = alertDialogBuilder.create();
-        alertDialog.setCanceledOnTouchOutside(false);
-        alertDialog.show();
+    private float calcAlpha(long curTimeStamp) {
+        float timeConstant = 1 / cutoffFrequency;
+        float deltaT = 1 / (accFilterCount++ / (curTimeStamp - accTimeStamp) / 1000000000.0f);
+        return timeConstant / (timeConstant+deltaT);
     }
 
-    private void createPermissionDialog(String errorMsg) {
-        permissionDialog = new AlertDialog.Builder(this);
-        permissionDialog.setMessage(errorMsg);
-        permissionDialog.setPositiveButton("Ok",
-                new DialogInterface.OnClickListener() {
-                    @Override
-                    public void onClick(DialogInterface arg0, int arg1) {
-                        responseToNoPermission();
-                    }
-                });
-        permissionDialog.setOnCancelListener(new DialogInterface.OnCancelListener() {
-            @Override
-            public void onCancel(DialogInterface dialog) {
-                // if back button is pressed
-                finish();
-            }
-        });
-        AlertDialog alertDialog = permissionDialog.create();
-        alertDialog.setCanceledOnTouchOutside(false);
-        alertDialog.show();
+    private float[] lowPassFilter(long curTimeStamp, float[] values) {
+        float alpha = calcAlpha(curTimeStamp);
+        float[] output = new float[3];
+        output[0] = alpha * output[0] + (1 - alpha) * values[0];
+        output[1] = alpha * output[1] + (1 - alpha) * values[1];
+        output[2] = alpha * output[2] + (1 - alpha) * values[2];
+        return output;
     }
-
-    private void createSettingsDialog(String errorMsg) {
-        AlertDialog.Builder alertDialogBuilder = new AlertDialog.Builder(this);
-        alertDialogBuilder.setMessage(errorMsg);
-        alertDialogBuilder.setPositiveButton("Open Settings",
-                new DialogInterface.OnClickListener() {
-                    @Override
-                    public void onClick(DialogInterface arg0, int arg1) {
-                        Intent intent = new Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS);
-                        Uri uri = Uri.fromParts("package", getPackageName(), null);
-                        intent.setData(uri);
-                        startActivityForResult(intent, 100);
-                    }
-                });
-        alertDialogBuilder.setOnCancelListener(new DialogInterface.OnCancelListener() {
-            @Override
-            public void onCancel(DialogInterface dialog) {
-                // if back button is pressed
-                finish();
-            }
-        });
-        AlertDialog alertDialog = alertDialogBuilder.create();
-        alertDialog.setCanceledOnTouchOutside(false);
-        alertDialog.show();
-    }*/
 
     @Override
     public void onAccuracyChanged(Sensor sensor, int accuracy) {
@@ -681,31 +661,6 @@ public class MainActivity extends AppCompatActivity
                 ActivityCompat.requestPermissions(this,
                         convertArrayListStringToStringOfArray(permissionsNeeded),
                         PERMISSION_ALL);
-        } else {
-            if (PermissionChecker.checkSelfPermission(this, Manifest.permission.INTERNET)
-                    != PermissionChecker.PERMISSION_GRANTED) {
-
-            }
-            if (PermissionChecker.checkSelfPermission(this, Manifest.permission.ACCESS_WIFI_STATE)
-                    != PermissionChecker.PERMISSION_GRANTED) {
-
-            }
-            if (PermissionChecker.checkSelfPermission(this, Manifest.permission.ACCESS_NETWORK_STATE)
-                    != PermissionChecker.PERMISSION_GRANTED) {
-
-            }
-            if (PermissionChecker.checkSelfPermission(this, Manifest.permission.READ_EXTERNAL_STORAGE)
-                    != PermissionChecker.PERMISSION_GRANTED) {
-
-            }
-            if (PermissionChecker.checkSelfPermission(this, Manifest.permission.WRITE_EXTERNAL_STORAGE)
-                    != PermissionChecker.PERMISSION_GRANTED) {
-
-            }
-            if (PermissionChecker.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION)
-                    != PermissionChecker.PERMISSION_GRANTED) {
-
-            }
         }
     }
 
@@ -736,16 +691,20 @@ public class MainActivity extends AppCompatActivity
         if (gyroSwitchPref)
             sensorManager.registerListener(this, gyroscope,
                     sensorSamplingDelayPref);
-        if (accSwitchPref)
+        if (accSwitchPref
+                || (linearAccSwitchPref && linearAccUnsupported)
+                || (linearAccSwitchPref && !linearAccUnsupported && lpfLinearAccCheckBoxPref))
             sensorManager.registerListener(this, accelerometer,
                     sensorSamplingDelayPref);
         if (magSwitchPref)
             sensorManager.registerListener(this, magnetometer,
                     sensorSamplingDelayPref);
-        if (gravSwitchPref)
+        if (gravSwitchPref
+                || (linearAccSwitchPref && linearAccUnsupported)
+                || (linearAccSwitchPref && !linearAccUnsupported && lpfLinearAccCheckBoxPref))
             sensorManager.registerListener(this, gravmeter,
                     sensorSamplingDelayPref);
-        if (linearAccSwitchPref && !linearaccUnsupported)
+        if (linearAccSwitchPref && !linearAccUnsupported && !lpfLinearAccCheckBoxPref)
             sensorManager.registerListener(this, linearaccelerometer,
                     sensorSamplingDelayPref);
         if (proximitySwitchPref)
@@ -754,18 +713,23 @@ public class MainActivity extends AppCompatActivity
     }
 
     public void offListener() {
-        if (gyroSwitchPref)
+        /*if (gyroSwitchPref)
             sensorManager.unregisterListener(this, gyroscope);
-        if (accSwitchPref)
+        if (accSwitchPref
+                || (linearAccSwitchPref && linearAccUnsupported)
+                || (linearAccSwitchPref && !linearAccUnsupported && lpfLinearAccCheckBoxPref))
             sensorManager.unregisterListener(this, accelerometer);
         if (magSwitchPref)
             sensorManager.unregisterListener(this, magnetometer);
-        if (gravSwitchPref)
+        if (gravSwitchPref
+                || (linearAccSwitchPref && linearAccUnsupported)
+                || (linearAccSwitchPref && !linearAccUnsupported && lpfLinearAccCheckBoxPref))
             sensorManager.unregisterListener(this, gravmeter);
-        if (linearAccSwitchPref && !linearaccUnsupported)
+        if (linearAccSwitchPref && !linearAccUnsupported && !lpfLinearAccCheckBoxPref)
             sensorManager.unregisterListener(this, linearaccelerometer);
         if (proximitySwitchPref)
-            sensorManager.unregisterListener(this, proximity);
+            sensorManager.unregisterListener(this, proximity);*/
+        sensorManager.unregisterListener(this);
     }
 
     private void speak(final String speech) {
@@ -930,7 +894,7 @@ public class MainActivity extends AppCompatActivity
                                     insert.bindDouble(index++, gravVal[2]);
                                 }
                                 if (linearAccSwitchPref) {
-                                    if (!linearaccUnsupported) {
+                                    if (!linearAccUnsupported) {
                                         insert.bindDouble(index++, linearAcceleroVal[0]);
                                         insert.bindDouble(index++, linearAcceleroVal[1]);
                                         insert.bindDouble(index++, linearAcceleroVal[2]);
@@ -950,12 +914,16 @@ public class MainActivity extends AppCompatActivity
                 collectStatus = true;
                 switch (timerModePref) {
                     case "Schedule": collectTimer.schedule(collectTimerTask, 0, timeLabelIntervalPref);
-                        if (logTimerSwitchPref)
+                        if (logTimerSwitchPref) {
+                            accTimeStamp = System.nanoTime();
                             logTimer.schedule(logTimerTask, 0, timeLoggingIntervalPref);
+                        }
                         break;
                     case "ScheduleAtFixedRate": collectTimer.scheduleAtFixedRate(collectTimerTask, 0, timeLabelIntervalPref);
-                        if (logTimerSwitchPref)
+                        if (logTimerSwitchPref) {
+                            accTimeStamp = System.nanoTime();
                             logTimer.scheduleAtFixedRate(logTimerTask, 0, timeLoggingIntervalPref);
+                        }
                         break;
                     default: break;
                 }
@@ -980,87 +948,117 @@ public class MainActivity extends AppCompatActivity
         exportCloudButton.setClickable(true);
         stopCollectButton.setClickable(false);
         automatedEventInfo.setVisibility(View.GONE);
-        Cursor cur = sensorDataDB.rawQuery("SELECT * FROM sensordata", null);
+        final Cursor cur = sensorDataDB.rawQuery("SELECT * FROM sensordata", null);
         cur.moveToFirst();
-        File file = new File(getApplicationContext().getFilesDir(), "output.csv");
+        final File file = new File(getApplicationContext().getFilesDir(), "output.csv");
         if (cur.getCount() > 0) {
-            try {
-                FileOutputStream outputStream = new FileOutputStream(file, false);
-                StringBuilder csvHeader = new StringBuilder("No,Timestamp,Label");
-                if (gyroSwitchPref)
-                    csvHeader.append(",GyroX,GyroY,GyroZ");
-                if (accSwitchPref)
-                    csvHeader.append(",AccX,AccY,AccZ");
-                if (magSwitchPref)
-                    csvHeader.append(",MagX,MagY,MagZ");
-                if (orientationSwitchPref)
-                    csvHeader.append(",Azimut,Pitch,Roll");
-                if (gravSwitchPref)
-                    csvHeader.append(",GravX,GravY,GravZ");
-                if (linearAccSwitchPref)
-                    csvHeader.append(",LinearAccX,LinearAccY,LinearAccZ");
-                if (proximitySwitchPref)
-                    csvHeader.append(",Proximity");
-                csvHeader.append('\n');
-                outputStream.write(csvHeader.toString().getBytes());
-                do {
-                    int columnIndex = 0;
-                    StringBuilder row = new StringBuilder();
-                    String recordCount = cur.getString(columnIndex++);
-                    String tStamp = cur.getString(columnIndex++);
-                    String label = cur.getString(columnIndex++);
-                    row.append(recordCount + ',' + tStamp + ',' + label + ',');
-                    if (gyroSwitchPref) {
-                        String gyroX = cur.getString(columnIndex++);
-                        String gyroY = cur.getString(columnIndex++);
-                        String gyroZ = cur.getString(columnIndex++);
-                        row.append(gyroX + ',' + gyroY + ',' + gyroZ + ',');
+            final CustomProgressDialog writeProgressDialog = new CustomProgressDialog(
+                    this, "Writing file...",
+                    ProgressDialog.STYLE_HORIZONTAL, false, false,
+                    0, cur.getCount());
+            new AsyncTask<Void, Integer, Void>() {
+                @Override
+                protected void onPreExecute() {
+                    super.onPreExecute();
+                    writeProgressDialog.show();
+                }
+
+                @Override
+                protected Void doInBackground(Void... params) {
+                    try {
+                        FileOutputStream outputStream = new FileOutputStream(file, false);
+                        StringBuilder csvHeader = new StringBuilder("No,Timestamp,Label");
+                        if (gyroSwitchPref)
+                            csvHeader.append(",GyroX,GyroY,GyroZ");
+                        if (accSwitchPref)
+                            csvHeader.append(",AccX,AccY,AccZ");
+                        if (magSwitchPref)
+                            csvHeader.append(",MagX,MagY,MagZ");
+                        if (orientationSwitchPref)
+                            csvHeader.append(",Azimut,Pitch,Roll");
+                        if (gravSwitchPref)
+                            csvHeader.append(",GravX,GravY,GravZ");
+                        if (linearAccSwitchPref)
+                            csvHeader.append(",LinearAccX,LinearAccY,LinearAccZ");
+                        if (proximitySwitchPref)
+                            csvHeader.append(",Proximity");
+                        csvHeader.append('\n');
+                        outputStream.write(csvHeader.toString().getBytes());
+                        do {
+                            publishProgress(cur.getPosition());
+                            int columnIndex = 0;
+                            StringBuilder row = new StringBuilder();
+                            String recordCount = cur.getString(columnIndex++);
+                            String tStamp = cur.getString(columnIndex++);
+                            String label = cur.getString(columnIndex++);
+                            row.append(recordCount + ',' + tStamp + ',' + label + ',');
+                            if (gyroSwitchPref) {
+                                String gyroX = cur.getString(columnIndex++);
+                                String gyroY = cur.getString(columnIndex++);
+                                String gyroZ = cur.getString(columnIndex++);
+                                row.append(gyroX + ',' + gyroY + ',' + gyroZ + ',');
+                            }
+                            if (accSwitchPref) {
+                                String accX = cur.getString(columnIndex++);
+                                String accY = cur.getString(columnIndex++);
+                                String accZ = cur.getString(columnIndex++);
+                                row.append(accX + ',' + accY + ',' + accZ + ',');
+                            }
+                            if (magSwitchPref) {
+                                String magX = cur.getString(columnIndex++);
+                                String magY = cur.getString(columnIndex++);
+                                String magZ = cur.getString(columnIndex++);
+                                row.append(magX + ',' + magY + ',' + magZ + ',');
+                            }
+                            if (orientationSwitchPref) {
+                                String azimut = cur.getString(columnIndex++);
+                                String pitch = cur.getString(columnIndex++);
+                                String roll = cur.getString(columnIndex++);
+                                row.append(azimut + ',' + pitch + ',' + roll + ',');
+                            }
+                            if (gravSwitchPref) {
+                                String gravX = cur.getString(columnIndex++);
+                                String gravY = cur.getString(columnIndex++);
+                                String gravZ = cur.getString(columnIndex++);
+                                row.append(gravX + ',' + gravY + ',' + gravZ + ',');
+                            }
+                            if (linearAccSwitchPref) {
+                                String linearAccX = cur.getString(columnIndex++);
+                                String linearAccY = cur.getString(columnIndex++);
+                                String linearAccZ = cur.getString(columnIndex++);
+                                row.append(linearAccX + ',' + linearAccY + ',' + linearAccZ + ',');
+                            }
+                            if (proximitySwitchPref) {
+                                String proximity = cur.getString(columnIndex++);
+                                row.append(proximity);
+                            }
+                            row.append('\n');
+                            outputStream.write(row.toString().getBytes());
+                        } while (cur.moveToNext());
+                        outputStream.flush();
+                        outputStream.close();
+                    } catch (Exception e) {
+                        e.printStackTrace();
                     }
-                    if (accSwitchPref) {
-                        String accX = cur.getString(columnIndex++);
-                        String accY = cur.getString(columnIndex++);
-                        String accZ = cur.getString(columnIndex++);
-                        row.append(accX + ',' + accY + ',' + accZ + ',');
-                    }
-                    if (magSwitchPref) {
-                        String magX = cur.getString(columnIndex++);
-                        String magY = cur.getString(columnIndex++);
-                        String magZ = cur.getString(columnIndex++);
-                        row.append(magX + ',' + magY + ',' + magZ + ',');
-                    }
-                    if (orientationSwitchPref) {
-                        String azimut = cur.getString(columnIndex++);
-                        String pitch = cur.getString(columnIndex++);
-                        String roll = cur.getString(columnIndex++);
-                        row.append(azimut + ',' + pitch + ',' + roll + ',');
-                    }
-                    if (gravSwitchPref) {
-                        String gravX = cur.getString(columnIndex++);
-                        String gravY = cur.getString(columnIndex++);
-                        String gravZ = cur.getString(columnIndex++);
-                        row.append(gravX + ',' + gravY + ',' + gravZ + ',');
-                    }
-                    if (linearAccSwitchPref) {
-                        String linearAccX = cur.getString(columnIndex++);
-                        String linearAccY = cur.getString(columnIndex++);
-                        String linearAccZ = cur.getString(columnIndex++);
-                        row.append(linearAccX + ',' + linearAccY + ',' + linearAccZ + ',');
-                    }
-                    if (proximitySwitchPref) {
-                        String proximity = cur.getString(columnIndex++);
-                        row.append(proximity);
-                    }
-                    row.append('\n');
-                    outputStream.write(row.toString().getBytes());
-                } while (cur.moveToNext());
-                outputStream.flush();
-                outputStream.close();
-                cur.close();
-                Toast.makeText(this, "CSV created locally" + "\n" + file.getAbsolutePath(),
-                        Toast.LENGTH_LONG).show();
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
+                    return null;
+                }
+
+                @Override
+                protected void onPostExecute(Void aVoid) {
+                    super.onPostExecute(aVoid);
+                    cur.close();
+                    if (writeProgressDialog.isShowing())
+                        writeProgressDialog.dismiss();
+                    Toast.makeText(getApplicationContext(), "CSV created locally" + "\n" + file.getAbsolutePath(),
+                            Toast.LENGTH_LONG).show();
+                }
+
+                @Override
+                protected void onProgressUpdate(Integer... values) {
+                    writeProgressDialog.setProgress(values[0]);
+                }
+            }.execute();
+
         }
     }
 
@@ -1083,10 +1081,15 @@ public class MainActivity extends AppCompatActivity
     public void getLocalCSV(View view) {
         File srcFile = new File(getApplicationContext().getFilesDir(), "output.csv");
         if (srcFile.exists()) {
-            new AsyncTask<File, Void, File>() {
+            final CustomProgressDialog localProgressDialog = new CustomProgressDialog(
+                    this, "Getting file locally...",
+                    ProgressDialog.STYLE_SPINNER, true, false,
+                    0, 1024);
+            new AsyncTask<File, Integer, File>() {
                 @Override
                 protected void onPreExecute() {
                     super.onPreExecute();
+                    localProgressDialog.show();
                 }
 
                 @Override
@@ -1099,8 +1102,10 @@ public class MainActivity extends AppCompatActivity
                         // Copy the bits from instream to outstream
                         byte[] buf = new byte[1024];
                         int len;
-                        while ((len = in.read(buf)) != -1)
+                        while ((len = in.read(buf)) != -1) {
                             out.write(buf, 0, len);
+                            publishProgress(1);
+                        }
                         in.close();
                         out.close();
                         return defaultDownloadDir;
@@ -1115,11 +1120,18 @@ public class MainActivity extends AppCompatActivity
                 @Override
                 protected void onPostExecute(File defaultDownloadDir) {
                     super.onPostExecute(defaultDownloadDir);
+                    if (localProgressDialog.isShowing())
+                        localProgressDialog.dismiss();
                     if (defaultDownloadDir == null)
                         Toast.makeText(getApplicationContext(), "File/IO Exception", Toast.LENGTH_SHORT).show();
                     else
                         Toast.makeText(getApplicationContext(), "CSV file was downloaded locally to" +
                                 "\n" + defaultDownloadDir, Toast.LENGTH_LONG).show();
+                }
+
+                @Override
+                protected void onProgressUpdate(Integer... values) {
+                    super.onProgressUpdate(values);
                 }
             }.execute(srcFile);
         } else {
@@ -1136,6 +1148,18 @@ public class MainActivity extends AppCompatActivity
         responseToNoInternetAccess();
         File file = new File(getApplicationContext().getFilesDir(), "output.csv");
         if (file.exists()) {
+            final CustomProgressDialog exportProgressDialog = new CustomProgressDialog(
+                    this, "Uploading...",
+                    ProgressDialog.STYLE_HORIZONTAL, false, false,
+                    0, 100);
+            exportProgressDialog.show();
+            /*final ProgressDialog progressDialog = new ProgressDialog(this);
+            progressDialog.setMessage("Uploading...");
+            progressDialog.setIndeterminate(false);
+            progressDialog.setCancelable(false);
+            progressDialog.setProgress(0);
+            progressDialog.setMax(100);
+            progressDialog.show();*/
             AmazonS3Client s3client = new AmazonS3Client(credentialsProvider);
             TransferUtility transferUtility =
                     TransferUtility.builder()
@@ -1154,6 +1178,8 @@ public class MainActivity extends AppCompatActivity
                 @Override
                 public void onStateChanged(int id, TransferState state) {
                     if (TransferState.COMPLETED == state) {
+                        if (exportProgressDialog.isShowing())
+                            exportProgressDialog.dismiss();
                         // Handle a completed upload.
                         Toast.makeText(getApplicationContext(), "CSV file uploaded to AWS S3", Toast.LENGTH_LONG).show();
                     }
@@ -1165,11 +1191,14 @@ public class MainActivity extends AppCompatActivity
                     int percentDone = (int) percentDonef;
                     Log.d("YourActivity", "ID:" + id + " bytesCurrent: " + bytesCurrent
                             + " bytesTotal: " + bytesTotal + " " + percentDone + "%");
+                    exportProgressDialog.setProgress(percentDone);
                 }
 
                 @Override
                 public void onError(int id, Exception ex) {
                     // Handle errors
+                    if (exportProgressDialog.isShowing())
+                        exportProgressDialog.dismiss();
                     Toast.makeText(getApplicationContext(), "Please check internet connection", Toast.LENGTH_SHORT).show();
                 }
             });

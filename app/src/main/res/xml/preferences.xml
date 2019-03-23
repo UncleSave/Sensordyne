@@ -32,6 +32,11 @@
         android:key="linear_accelerometer_switch"
         android:summary="Keep track of the linear accelerometer data"
         android:title="Linear accelerometer data" />
+    <android.support.v7.preference.CheckBoxPreference
+        android:defaultValue="false"
+        android:key="lpf_linear_acc_switch"
+        android:summary="Enable low pass filter for linear accelerometer"
+        android:title="Low pass filter (linear accelerometer)" />
     <android.support.v7.preference.SwitchPreferenceCompat
         android:defaultValue="true"
         android:key="proximity_switch"
@@ -84,6 +89,6 @@
     <android.support.v7.preference.SwitchPreferenceCompat
         android:defaultValue="true"
         android:key="texttospeech_switch"
-        android:summary="Enable text to speech for collection process"
+        android:summary="Enable text to speech for collection process (may impact logging performance)"
         android:title="Text-to-speech" />
 </PreferenceScreen>

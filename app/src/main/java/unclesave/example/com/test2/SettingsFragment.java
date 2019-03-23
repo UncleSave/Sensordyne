@@ -7,11 +7,13 @@ import android.hardware.SensorManager;
 import android.os.Bundle;
 import android.provider.Settings;
 import android.support.v4.app.Fragment;
+import android.support.v7.preference.CheckBoxPreference;
 import android.support.v7.preference.ListPreference;
 import android.support.v7.preference.Preference;
 import android.support.v7.preference.PreferenceFragmentCompat;
 import android.support.v7.preference.SwitchPreferenceCompat;
 
+import java.util.Set;
 import java.util.prefs.PreferenceChangeEvent;
 import java.util.prefs.PreferenceChangeListener;
 
@@ -22,7 +24,8 @@ public class SettingsFragment extends PreferenceFragmentCompat {
 
     private SwitchPreferenceCompat gyroscopeSetting, accelerometerSetting, magnetometerSetting,
             orientationSetting, gravitySetting, linearaccelerometerSetting, proximitySetting, logTimerSetting;
-    private boolean linearaccUnsupported;
+    private CheckBoxPreference lowPassFilterAccSetting;
+    private boolean linearAccUnsupported;
     private IntEditTextPreference timeLabelIntervalSetting, timeLoggingIntervalSetting, sensorSamplingDelaySetting;
     private ListPreference collectModeSetting, timerModeSetting;
     private SwitchPreferenceCompat textToSpeechSetting;
@@ -40,8 +43,8 @@ public class SettingsFragment extends PreferenceFragmentCompat {
         orientationSetting = (SwitchPreferenceCompat) findPreference(SettingsActivity.KEY_PREF_ORIENTATION_SWITCH);
         gravitySetting = (SwitchPreferenceCompat) findPreference(SettingsActivity.KEY_PREF_GRAVITY_SWITCH);
         linearaccelerometerSetting = (SwitchPreferenceCompat) findPreference(SettingsActivity.KEY_PREF_LINEAR_ACCELEROMETER_SWITCH);
+        lowPassFilterAccSetting = (CheckBoxPreference) findPreference(SettingsActivity.KEY_PREF_LPF_LINEAR_ACC_SWITCH);
         proximitySetting = (SwitchPreferenceCompat) findPreference(SettingsActivity.KEY_PREF_PROXIMITY_SWITCH);
-
         try {
             sensorManager = (SensorManager) getActivity().getSystemService(Context.SENSOR_SERVICE);
             gyroscope = sensorManager.getDefaultSensor(Sensor.TYPE_GYROSCOPE);
@@ -71,14 +74,20 @@ public class SettingsFragment extends PreferenceFragmentCompat {
                 gravitySetting.setChecked(false);
             }
             linearaccelerometer = sensorManager.getDefaultSensor(Sensor.TYPE_LINEAR_ACCELERATION);
-            linearaccUnsupported = (linearaccelerometer == null);
-            if (linearaccUnsupported) {
+            linearAccUnsupported = (linearaccelerometer == null);
+            if (linearAccUnsupported) {
                 if (accelerometerSetting.isChecked() && gravitySetting.isChecked())
                     linearaccelerometerSetting.setEnabled(true);
                 else {
                     linearaccelerometerSetting.setEnabled(false);
                     linearaccelerometerSetting.setChecked(false);
                 }
+            }
+            if (linearaccelerometerSetting.isChecked())
+                lowPassFilterAccSetting.setEnabled(true);
+            else {
+                lowPassFilterAccSetting.setEnabled(false);
+                lowPassFilterAccSetting.setChecked(false);
             }
             proximity = sensorManager.getDefaultSensor(Sensor.TYPE_PROXIMITY);
             if (proximity == null) {
@@ -100,43 +109,11 @@ public class SettingsFragment extends PreferenceFragmentCompat {
         prefChangeListener = new Preference.OnPreferenceChangeListener() {
             @Override
             public boolean onPreferenceChange(Preference preference, Object newValue) {
-                /*if (preference == accelerometerSetting && newValue.toString().equals("true")) {
-                    if (magnetometerSetting.isChecked())
-                        orientationSetting.setEnabled(true);
-                    if (gravitySetting.isChecked() && linearaccUnsupported)
-                        linearaccelerometerSetting.setEnabled(true);
-                }
-                else if (preference == magnetometerSetting && newValue.toString().equals("true")) {
-                    if (accelerometerSetting.isChecked())
-                        orientationSetting.setEnabled(true);
-                }
-                else if (preference == gravitySetting && newValue.toString().equals("true")) {
-                    if (accelerometerSetting.isChecked())
-                        linearaccelerometerSetting.setEnabled(true);
-                }
-                else {
-                    if (preference == accelerometerSetting) {
-                        orientationSetting.setEnabled(false);
-                        orientationSetting.setChecked(false);
-                        if (linearaccUnsupported) {
-                            linearaccelerometerSetting.setEnabled(false);
-                            linearaccelerometerSetting.setChecked(false);
-                        }
-                    }
-                    else if (preference == magnetometerSetting) {
-                        orientationSetting.setEnabled(false);
-                        orientationSetting.setChecked(false);
-                    } else if (preference == gravitySetting) {
-                        linearaccelerometerSetting.setEnabled(false);
-                        linearaccelerometerSetting.setChecked(false);
-                    }
-                }*/
-
                 if (newValue.toString().equals("true")) {
                     if (preference == accelerometerSetting) {
                         if (magnetometerSetting.isChecked())
                             orientationSetting.setEnabled(true);
-                        if (gravitySetting.isChecked() && linearaccUnsupported)
+                        if (gravitySetting.isChecked() && linearAccUnsupported)
                             linearaccelerometerSetting.setEnabled(true);
                     } else if (preference == magnetometerSetting) {
                         if (accelerometerSetting.isChecked())
@@ -144,13 +121,13 @@ public class SettingsFragment extends PreferenceFragmentCompat {
                     } else if (preference == gravitySetting) {
                         if (accelerometerSetting.isChecked())
                             linearaccelerometerSetting.setEnabled(true);
-                    }
-
+                    } else if (preference == linearaccelerometerSetting)
+                        lowPassFilterAccSetting.setEnabled(true);
                 } else {
                     if (preference == accelerometerSetting) {
                         orientationSetting.setEnabled(false);
                         orientationSetting.setChecked(false);
-                        if (linearaccUnsupported) {
+                        if (linearAccUnsupported) {
                             linearaccelerometerSetting.setEnabled(false);
                             linearaccelerometerSetting.setChecked(false);
                         }
@@ -160,6 +137,9 @@ public class SettingsFragment extends PreferenceFragmentCompat {
                     } else if (preference == gravitySetting) {
                         linearaccelerometerSetting.setEnabled(false);
                         linearaccelerometerSetting.setChecked(false);
+                    } else if (preference == linearaccelerometerSetting) {
+                        lowPassFilterAccSetting.setEnabled(false);
+                        lowPassFilterAccSetting.setChecked(false);
                     }
                 }
                 return true;
@@ -167,7 +147,8 @@ public class SettingsFragment extends PreferenceFragmentCompat {
         };
         accelerometerSetting.setOnPreferenceChangeListener(prefChangeListener);
         magnetometerSetting.setOnPreferenceChangeListener(prefChangeListener);
-        if (linearaccUnsupported)
+        if (linearAccUnsupported)
             gravitySetting.setOnPreferenceChangeListener(prefChangeListener);
+        linearaccelerometerSetting.setOnPreferenceChangeListener(prefChangeListener);
     }
 }
