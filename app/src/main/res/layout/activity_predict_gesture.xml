@@ -6,7 +6,7 @@
     android:layout_height="match_parent"
     android:padding="10dp"
     app:layout_behavior="@string/appbar_scrolling_view_behavior"
-    tools:context=".PredictLabelActivity">
+    tools:context=".PredictGestureActivity">
 
     <Button
         android:id="@+id/start_predict_button"
@@ -60,7 +60,7 @@
         android:padding="10dp" />
 
     <TextView
-        android:id="@+id/result_values"
+        android:id="@+id/gesture_result_values"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         app:layout_constraintLeft_toLeftOf="parent"

@@ -20,8 +20,11 @@
             android:id="@+id/nav_network_settings_info"
             android:title="@string/neural_network_settings" />
         <item
-            android:id="@+id/nav_predict_label"
-            android:title="@string/predict_label" />
+            android:id="@+id/nav_predict_gesture"
+            android:title="@string/predict_gesture" />
+        <item
+            android:id="@+id/nav_predict_morse_code"
+            android:title="@string/predict_morse_code" />
     </group>
 
 </menu>

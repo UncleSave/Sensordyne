@@ -37,17 +37,9 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
-import java.io.PrintWriter;
-import java.io.UnsupportedEncodingException;
-import java.nio.charset.Charset;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Date;
-import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 import okhttp3.OkHttpClient;
@@ -58,14 +50,31 @@ public class NetworkSettingsActivity extends AppCompatActivity
 
     private AWSCredentialsProvider credentialsProvider;
     private AWSConfiguration configuration;
-    private EditText unitInput, inputShapeInput, dropoutInput;
-    private Spinner layerTypeSpinner, activationSpinner, lossSpinner, optimizerSpinner;
-    private EditText batchSizeInput, epochInput, timeStepInput, hiddenLayerInput;
-    private Button addLayerButton, saveModelButton, saveSettingsButton;
+    private EditText unitInput;
+    private EditText inputShapeInput;
+    private EditText dropoutInput;
+    private Spinner layerTypeSpinner;
+    private Spinner activationSpinner;
+    private Spinner lossSpinner;
+    private Spinner optimizerSpinner;
+    private EditText batchSizeInput;
+    private EditText epochInput;
+    private EditText timeStepInput;
+    private EditText hiddenLayerInput;
+    private Button addLayerButton;
+    private Button saveModelButton;
+    private Button saveSettingsButton;
     private String androidID;
-    private String layerType, inputShape, optimizer, loss, activation;
+    private String layerType;
+    private String inputShape;
+    private String optimizer;
+    private String loss;
+    private String activation;
     private float dropout;
-    private int unit, batchSize, epoch, timeStep;
+    private int unit;
+    private int batchSize;
+    private int epoch;
+    private int timeStep;
     private ArrayList<String> pyCodeList = new ArrayList<>();
 
     @Override
@@ -451,7 +460,7 @@ public class NetworkSettingsActivity extends AppCompatActivity
 
     }
 
-    public void saveSettings(View view) {
+    public void saveFitModelSettings(View view) {
         epoch = Integer.parseInt(epochInput.getText().toString());
         batchSize = Integer.parseInt(batchSizeInput.getText().toString());
         timeStep = Integer.parseInt(timeStepInput.getText().toString());
@@ -463,7 +472,7 @@ public class NetworkSettingsActivity extends AppCompatActivity
                 @Override
                 protected String doInBackground(ParameterSettings... params) {
                     try {
-                        File file = new File(getApplicationContext().getFilesDir(), "settings.txt");
+                        File file = new File(getApplicationContext().getFilesDir(), "fitModelSettings.txt");
                         FileOutputStream outputStream = new FileOutputStream(file, false);
                         outputStream.write(epochInput.getText().toString().getBytes());
                         outputStream.write(";".getBytes());

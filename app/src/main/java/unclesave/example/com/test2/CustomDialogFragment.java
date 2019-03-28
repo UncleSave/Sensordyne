@@ -14,6 +14,7 @@ public class CustomDialogFragment extends DialogFragment {
     private int dialogCode;
     private String message;
     private String positiveButtonText;
+    private String negativeButtonText;
     private String title;
 
     static CustomDialogFragment newInstance(int dialogCode){
@@ -48,9 +49,28 @@ public class CustomDialogFragment extends DialogFragment {
             title = "Sensor manager missing";
             message = "Cannot start sensor manager.";
             positiveButtonText = "Close";
-        } else;
+        } else if (dialogCode == 200) {
+            title = "Sensor/Sensor manager missing";
+            message = "Cannot start sensor manager or either one of the sensors is missing:" +
+                    " gyroscope, accelerometer, magnetometer, gravmeter";
+            positiveButtonText = "Close";
+        } else if (dialogCode == 300) {
+            title = "Fit model graph prompt";
+            message = "Do you want to visualise the graph?";
+            positiveButtonText = "Yes";
+            negativeButtonText = "No";
+        } else if (dialogCode == 301) {
+            title = "Fit model example prompt";
+            message = "Do you want to use the example?";
+            positiveButtonText = "Yes";
+            negativeButtonText = "No";
+        } else if (dialogCode == 400) {
+            title = "Missing bucket";
+            message = "Cannot access Amazon S3 bucket";
+            positiveButtonText = "Close";
+        }
+        else;
         AlertDialog.Builder alertDialogBuilder = new AlertDialog.Builder(getActivity());
-        final MainActivity mainActivity = ((MainActivity)getActivity());
         alertDialogBuilder.setTitle(this.title);
         alertDialogBuilder.setMessage(this.message);
         alertDialogBuilder.setPositiveButton(positiveButtonText,
@@ -65,14 +85,34 @@ public class CustomDialogFragment extends DialogFragment {
                             startActivityForResult(intent, 100);
                         }
                         else if (dialogCode == 101)
-                            mainActivity.responseToNoPermission();
-                        else if (dialogCode == 102)
-                            mainActivity.finish();
+                            ((MainActivity)getActivity()).responseToNoPermission();
+                        else if (dialogCode == 102);
                         else if (dialogCode == 103)
-                            mainActivity.finish();
+                            getActivity().finish();
+                        else if (dialogCode == 200)
+                            getActivity().finish();
+                        else if (dialogCode == 300)
+                            ((FitModelActivity)getActivity()).wantGraph("y");
+                        else if (dialogCode == 301)
+                            ((FitModelActivity)getActivity()).useExample("y");
+                        else if (dialogCode == 400)
+                            getActivity().finish();
                         else;
                     }
         });
+        if (dialogCode == 300 || dialogCode == 301) {
+            alertDialogBuilder.setNegativeButton(negativeButtonText,
+                    new DialogInterface.OnClickListener() {
+                        @Override
+                        public void onClick(DialogInterface arg0, int arg1) {
+                            if (dialogCode == 300)
+                                ((FitModelActivity)getActivity()).wantGraph("n");
+                            else if (dialogCode == 301)
+                                ((FitModelActivity)getActivity()).useExample("n");
+                            else;
+                        }
+            });
+        }
         AlertDialog alertDialog = alertDialogBuilder.create();
         alertDialog.setCanceledOnTouchOutside(false);
         return alertDialog;

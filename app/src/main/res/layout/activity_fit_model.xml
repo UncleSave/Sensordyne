@@ -6,20 +6,20 @@
     android:layout_height="wrap_content"
     android:padding="10dp"
     app:layout_behavior="@string/appbar_scrolling_view_behavior"
-    tools:context=".BuildModelActivity">
+    tools:context=".FitModelActivity">
 
     <Button
-        android:id="@+id/build_model_button"
+        android:id="@+id/fit_model_button"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:clickable="false"
-        android:onClick="buildModel"
-        android:text="@string/build" />
+        android:onClick="fitModel"
+        android:text="@string/fit_model" />
 
     <ScrollView
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_below="@+id/build_model_button"
+        android:layout_below="@+id/fit_model_button"
         android:paddingBottom="10dp" >
 
         <TextView

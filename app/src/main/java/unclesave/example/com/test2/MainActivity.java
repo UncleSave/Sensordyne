@@ -79,19 +79,38 @@ public class MainActivity extends AppCompatActivity
     private int accFilterCount = 0;
     private long accTimeStamp;
     private SensorManager sensorManager;
-    private Sensor gyroscope, accelerometer, magnetometer, gravmeter, linearaccelerometer, proximity;
-    private boolean gyroSwitchPref, accSwitchPref, magSwitchPref, gravSwitchPref, orientationSwitchPref,
-            linearAccSwitchPref, proximitySwitchPref, textToSpeechSwitchPref, logTimerSwitchPref, lpfLinearAccCheckBoxPref;
-    private int timeLabelIntervalPref, timeLoggingIntervalPref, sensorSamplingDelayPref;
-    private String collectModePref, timerModePref;
+    private Sensor gyroscope;
+    private Sensor accelerometer;
+    private Sensor magnetometer;
+    private Sensor gravmeter;
+    private Sensor linearaccelerometer;
+    private Sensor proximity;
+    private boolean gyroSwitchPref;
+    private boolean accSwitchPref;
+    private boolean magSwitchPref;
+    private boolean gravSwitchPref;
+    private boolean orientationSwitchPref;
+    private boolean linearAccSwitchPref;
+    private boolean proximitySwitchPref;
+    private boolean textToSpeechSwitchPref;
+    private boolean logTimerSwitchPref;
+    private boolean lpfLinearAccCheckBoxPref;
+    private int timeLabelIntervalPref;
+    private int timeLoggingIntervalPref;
+    private int sensorSamplingDelayPref;
+    private String collectModePref;
+    private String timerModePref;
     private boolean linearAccUnsupported;
     //private TextView gyroscopeInfo, accelerometerInfo;
-    private Button exportCloudButton, localCSVButton;
+    private Button exportCloudButton;
+    private Button localCSVButton;
     private TextView labelInstruct;
     private EditText labelInfo;
-    private Button addLabelButton, clearLabelButton;
+    private Button addLabelButton;
+    private Button clearLabelButton;
     private TextView labelListInfo;
-    private Button startCollectButton, stopCollectButton;
+    private Button startCollectButton;
+    private Button stopCollectButton;
     private TextView automatedEventInfo;
     private AWSCredentialsProvider credentialsProvider;
     private AWSConfiguration configuration;
@@ -110,11 +129,13 @@ public class MainActivity extends AppCompatActivity
     private ArrayList<Integer> indexForLabel = new ArrayList<>();
     private Iterator<Integer> integerIterator;
     private boolean collectStatus = false;
-    private boolean gravEmpty = true, accEmpty = true;
+    private boolean gravEmpty = true;
+    private boolean accEmpty = true;
     private String label = "";
     private StringBuilder insertCommand = new StringBuilder();
     private SQLiteStatement insert;
-    private Timer collectTimer, logTimer;
+    private Timer collectTimer;
+    private Timer logTimer;
     private TextToSpeech tts;
     private CustomDialogFragment permissionDialog = null;
 
@@ -137,7 +158,6 @@ public class MainActivity extends AppCompatActivity
                     @Override
                     public void onIdentityId(String identityId) {
                         Log.d("YourMainActivity", "Identity ID = " + identityId);
-
                         // Use IdentityManager#getCachedUserID to
                         //  fetch the locally cached identity id.
                         final String cachedIdentityId =
@@ -150,11 +170,11 @@ public class MainActivity extends AppCompatActivity
                 });
             }
         }).execute();
-        CognitoCachingCredentialsProvider cognitoProvider = new CognitoCachingCredentialsProvider(
+        /*CognitoCachingCredentialsProvider cognitoProvider = new CognitoCachingCredentialsProvider(
                 getApplicationContext(),
                 "us-east-1:0c63f012-ff89-4907-88ea-527828cd5db0", // Identity pool ID
                 Regions.US_EAST_1 // Region
-        );
+        );*/
 
         Toolbar toolbar = findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
@@ -394,16 +414,20 @@ public class MainActivity extends AppCompatActivity
             startActivity(getManageFileIntent);
             return true;
         } else if (id == R.id.nav_build_model_info) {
-            Intent getBuildModelIntent = new Intent(this, BuildModelActivity.class);
+            Intent getBuildModelIntent = new Intent(this, FitModelActivity.class);
             startActivity(getBuildModelIntent);
             return true;
         } else if (id == R.id.nav_network_settings_info) {
             Intent getNetworkSettingsIntent = new Intent(this, NetworkSettingsActivity.class);
             startActivity(getNetworkSettingsIntent);
             return true;
-        } else if (id == R.id.nav_predict_label) {
-            Intent getPredictLabelIntent = new Intent(this, PredictLabelActivity.class);
-            startActivity(getPredictLabelIntent);
+        } else if (id == R.id.nav_predict_gesture) {
+            Intent getPredictGestureIntent = new Intent(this, PredictGestureActivity.class);
+            startActivity(getPredictGestureIntent);
+            return true;
+        } else if (id == R.id.nav_predict_morse_code) {
+            Intent getPredictMorseCodeIntent = new Intent(this, PredictMorseCodeActivity.class);
+            startActivity(getPredictMorseCodeIntent);
             return true;
         } else;
         DrawerLayout drawer = findViewById(R.id.drawer_layout);
@@ -413,11 +437,13 @@ public class MainActivity extends AppCompatActivity
 
     @Override
     public void onSensorChanged(SensorEvent event) {
-        if (gravEmpty || accEmpty) {
-            gravEmpty = (gravVal[0] == 0.0f && gravVal[1] == 0.0f && gravVal[2] == 0.0f) ? true : false;
-            accEmpty = (acceleroVal[0] == 0.0f && acceleroVal[1] == 0.0f && acceleroVal[2] == 0.0f) ? true : false;
-        }
         int sensorType = event.sensor.getType();
+        if (sensorType == Sensor.TYPE_GRAVITY || sensorType == Sensor.TYPE_ACCELEROMETER) {
+            if (gravEmpty || accEmpty) {
+                gravEmpty = (gravVal[0] == 0.0f && gravVal[1] == 0.0f && gravVal[2] == 0.0f) ? true : false;
+                accEmpty = (acceleroVal[0] == 0.0f && acceleroVal[1] == 0.0f && acceleroVal[2] == 0.0f) ? true : false;
+            }
+        }
         switch (sensorType) {
             case Sensor.TYPE_GYROSCOPE:
                 System.arraycopy(event.values, 0, gyroscopeVal, 0, event.values.length);
@@ -463,60 +489,8 @@ public class MainActivity extends AppCompatActivity
             SensorManager.getRotationMatrix(r, null, acceleroVal, magnetoVal);
             SensorManager.getOrientation(r, orientationVal);
         }
-
-        if (!logTimerSwitchPref) {
+        if (!logTimerSwitchPref && collectStatus && !label.equals(""))
             new loggingTask(this).execute();
-            /*new AsyncTask<Void, Void, Void>() {
-                @Override
-                protected Void doInBackground(Void... voids) {
-                    if (collectStatus && !label.equals("")) {
-                        int index = 1;
-                        insert.bindLong(index++, timeStamp);
-                        insert.bindString(index++, label);
-                        if (gyroSwitchPref) {
-                            insert.bindDouble(index++, gyroscopeVal[0]);
-                            insert.bindDouble(index++, gyroscopeVal[1]);
-                            insert.bindDouble(index++, gyroscopeVal[2]);
-                        }
-                        if (accSwitchPref) {
-                            insert.bindDouble(index++, acceleroVal[0]);
-                            insert.bindDouble(index++, acceleroVal[1]);
-                            insert.bindDouble(index++, acceleroVal[2]);
-                        }
-                        if (magSwitchPref) {
-                            insert.bindDouble(index++, magnetoVal[0]);
-                            insert.bindDouble(index++, magnetoVal[1]);
-                            insert.bindDouble(index++, magnetoVal[2]);
-                        }
-                        if (orientationSwitchPref) {
-                            insert.bindDouble(index++, orientationVal[0]);
-                            insert.bindDouble(index++, orientationVal[1]);
-                            insert.bindDouble(index++, orientationVal[2]);
-                        }
-                        if (gravSwitchPref) {
-                            insert.bindDouble(index++, gravVal[0]);
-                            insert.bindDouble(index++, gravVal[1]);
-                            insert.bindDouble(index++, gravVal[2]);
-                        }
-                        if (linearAccSwitchPref) {
-                            if (!linearaccUnsupported) {
-                                insert.bindDouble(index++, linearAcceleroVal[0]);
-                                insert.bindDouble(index++, linearAcceleroVal[1]);
-                                insert.bindDouble(index++, linearAcceleroVal[2]);
-                            } else {
-                                insert.bindDouble(index++, acceleroVal[0] - gravVal[0]);
-                                insert.bindDouble(index++, acceleroVal[1] - gravVal[1]);
-                                insert.bindDouble(index++, acceleroVal[2] - gravVal[2]);
-                            }
-                        }
-                        if (proximitySwitchPref)
-                            insert.bindLong(index++, proximityVal);
-                        insert.execute();
-                    }
-                    return null;
-                }
-            }.execute();*/
-        }
     }
 
     private static class loggingTask extends AsyncTask<Void, Void, Void> {
@@ -529,56 +503,48 @@ public class MainActivity extends AppCompatActivity
 
         @Override
         protected Void doInBackground(Void... voids) {
-            if (activityReference.get().collectStatus && !activityReference.get().label.equals("")) {
-                int index = 1;
-                activityReference.get().insert.bindLong(index++, activityReference.get().timeStamp);
-                activityReference.get().insert.bindString(index++, activityReference.get().label);
-                if (activityReference.get().gyroSwitchPref) {
-                    activityReference.get().insert.bindDouble(index++, activityReference.get().gyroscopeVal[0]);
-                    activityReference.get().insert.bindDouble(index++, activityReference.get().gyroscopeVal[1]);
-                    activityReference.get().insert.bindDouble(index++, activityReference.get().gyroscopeVal[2]);
-                }
-                if (activityReference.get().accSwitchPref) {
-                    activityReference.get().insert.bindDouble(index++, activityReference.get().acceleroVal[0]);
-                    activityReference.get().insert.bindDouble(index++, activityReference.get().acceleroVal[1]);
-                    activityReference.get().insert.bindDouble(index++, activityReference.get().acceleroVal[2]);
-                }
-                if (activityReference.get().magSwitchPref) {
-                    activityReference.get().insert.bindDouble(index++, activityReference.get().magnetoVal[0]);
-                    activityReference.get().insert.bindDouble(index++, activityReference.get().magnetoVal[1]);
-                    activityReference.get().insert.bindDouble(index++, activityReference.get().magnetoVal[2]);
-                }
-                if (activityReference.get().orientationSwitchPref) {
-                    activityReference.get().insert.bindDouble(index++, activityReference.get().orientationVal[0]);
-                    activityReference.get().insert.bindDouble(index++, activityReference.get().orientationVal[1]);
-                    activityReference.get().insert.bindDouble(index++, activityReference.get().orientationVal[2]);
-                }
-                if (activityReference.get().gravSwitchPref) {
-                    activityReference.get().insert.bindDouble(index++, activityReference.get().gravVal[0]);
-                    activityReference.get().insert.bindDouble(index++, activityReference.get().gravVal[1]);
-                    activityReference.get().insert.bindDouble(index++, activityReference.get().gravVal[2]);
-                }
-                if (activityReference.get().linearAccSwitchPref) {
+            int index = 1;
+            activityReference.get().insert.bindLong(index++, activityReference.get().timeStamp);
+            activityReference.get().insert.bindString(index++, activityReference.get().label);
+            if (activityReference.get().gyroSwitchPref) {
+                activityReference.get().insert.bindDouble(index++, activityReference.get().gyroscopeVal[0]);
+                activityReference.get().insert.bindDouble(index++, activityReference.get().gyroscopeVal[1]);
+                activityReference.get().insert.bindDouble(index++, activityReference.get().gyroscopeVal[2]);
+            }
+            if (activityReference.get().accSwitchPref) {
+                activityReference.get().insert.bindDouble(index++, activityReference.get().acceleroVal[0]);
+                activityReference.get().insert.bindDouble(index++, activityReference.get().acceleroVal[1]);
+                activityReference.get().insert.bindDouble(index++, activityReference.get().acceleroVal[2]);
+            }
+            if (activityReference.get().magSwitchPref) {
+                activityReference.get().insert.bindDouble(index++, activityReference.get().magnetoVal[0]);
+                activityReference.get().insert.bindDouble(index++, activityReference.get().magnetoVal[1]);
+                activityReference.get().insert.bindDouble(index++, activityReference.get().magnetoVal[2]);
+            }
+            if (activityReference.get().orientationSwitchPref) {
+                activityReference.get().insert.bindDouble(index++, activityReference.get().orientationVal[0]);
+                activityReference.get().insert.bindDouble(index++, activityReference.get().orientationVal[1]);
+                activityReference.get().insert.bindDouble(index++, activityReference.get().orientationVal[2]);
+            }
+            if (activityReference.get().gravSwitchPref) {
+                activityReference.get().insert.bindDouble(index++, activityReference.get().gravVal[0]);
+                activityReference.get().insert.bindDouble(index++, activityReference.get().gravVal[1]);
+                activityReference.get().insert.bindDouble(index++, activityReference.get().gravVal[2]);
+            }
+            if (activityReference.get().linearAccSwitchPref) {
+                if (!activityReference.get().linearAccUnsupported) {
                     activityReference.get().insert.bindDouble(index++, activityReference.get().linearAcceleroVal[0]);
                     activityReference.get().insert.bindDouble(index++, activityReference.get().linearAcceleroVal[1]);
                     activityReference.get().insert.bindDouble(index++, activityReference.get().linearAcceleroVal[2]);
-                    /*if (!activityReference.get().linearAccUnsupported) {
-                        activityReference.get().insert.bindDouble(index++, activityReference.get().linearAcceleroVal[0]);
-                        activityReference.get().insert.bindDouble(index++, activityReference.get().linearAcceleroVal[1]);
-                        activityReference.get().insert.bindDouble(index++, activityReference.get().linearAcceleroVal[2]);
-                    } else {
-                        activityReference.get().insert.bindDouble(index++,
-                                activityReference.get().acceleroVal[0] - activityReference.get().gravVal[0]);
-                        activityReference.get().insert.bindDouble(index++, activityReference.get().acceleroVal[1] -
-                                activityReference.get().gravVal[1]);
-                        activityReference.get().insert.bindDouble(index++, activityReference.get().acceleroVal[2] -
-                                activityReference.get().gravVal[2]);
-                    }*/
+                } else {
+                    activityReference.get().insert.bindDouble(index++, activityReference.get().acceleroVal[0] - activityReference.get().gravVal[0]);
+                    activityReference.get().insert.bindDouble(index++, activityReference.get().acceleroVal[1] - activityReference.get().gravVal[1]);
+                    activityReference.get().insert.bindDouble(index++, activityReference.get().acceleroVal[2] - activityReference.get().gravVal[2]);
                 }
-                if (activityReference.get().proximitySwitchPref)
-                    activityReference.get().insert.bindLong(index, activityReference.get().proximityVal);
-                activityReference.get().insert.execute();
             }
+            if (activityReference.get().proximitySwitchPref)
+                activityReference.get().insert.bindLong(index, activityReference.get().proximityVal);
+            activityReference.get().insert.execute();
             return null;
         }
     }
@@ -612,14 +578,11 @@ public class MainActivity extends AppCompatActivity
                                 permissions[i])) {
                             CustomDialogFragment permissionSettingsDialog = CustomDialogFragment.newInstance(100);
                             permissionSettingsDialog.show(getFragmentManager(), "dialog");
-                        }
-                            //createSettingsDialog("You have denied some permissions previously, please enable it in setting.");
-                        else {
+                        } else {
                             if (permissionDialog == null) {
                                 permissionDialog = CustomDialogFragment.newInstance(101);
                                 permissionDialog.show(getFragmentManager(), "dialog");
                             }
-                                //createPermissionDialog("You need to give permission.");
                         }
                     }
                 }

@@ -1,13 +1,9 @@
 package unclesave.example.com.test2;
 
-import android.app.AlertDialog;
-import android.content.DialogInterface;
-import android.content.SharedPreferences;
 import android.hardware.Sensor;
 import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
 import android.hardware.SensorManager;
-import android.os.AsyncTask;
 import android.os.Bundle;
 import android.speech.tts.TextToSpeech;
 import android.support.v7.app.AppCompatActivity;
@@ -21,38 +17,69 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
-import java.util.Random;
 import java.util.Timer;
 import java.util.TimerTask;
 
-public class PredictLabelActivity extends AppCompatActivity implements SensorEventListener {
+public class PredictGestureActivity extends AppCompatActivity implements SensorEventListener {
 
     private static final int N_SAMPLES = 15;
-    private TextView leftTextView, rightTextView, onTableTextView, resultTextView;
+    private TextView leftTextView;
+    private TextView rightTextView;
+    private TextView onTableTextView;
+    private TextView resultTextView;
     private SensorManager sensorManager;
-    private Sensor gyroscope, accelerometer, magnetometer, gravmeter;
-    private Boolean gyroSwitchPref, accSwitchPref, magSwitchPref, gravSwitchPref,
-        orientationSwitchPref, textToSpeechSwitchPref;
-    private static List<Float> gyroX, gyroY, gyroZ, accX, accY, accZ,
-            magX, magY, magZ, azimuth, pitch, roll, gravX, gravY, gravZ;
-    private float gyroscopeVal[] = new float[3];
-    private float acceleroVal[] = new float[3];
-    private float magnetoVal[] = new float[3];
-    private float orientationVal[] = new float[3];
-    private float gravVal[] = new float[3];
-    private float r[] = new float[9];
+    private Sensor gyroscope;
+    private Sensor accelerometer;
+    private Sensor magnetometer;
+    private Sensor gravmeter;
+    private static List<Float> gyroX;
+    private static List<Float> gyroY;
+    private static List<Float> gyroZ;
+    private static List<Float> accX;
+    private static List<Float> accY;
+    private static List<Float> accZ;
+    private static List<Float> magX;
+    private static List<Float> magY;
+    private static List<Float> magZ;
+    private static List<Float> azimuth;
+    private static List<Float> pitch;
+    private static List<Float> roll;
+    private static List<Float> gravX;
+    private static List<Float> gravY;
+    private static List<Float> gravZ;
+    private float gyroscopeVal[];
+    private float acceleroVal[];
+    private float magnetoVal[];
+    private float orientationVal[];
+    private float gravVal[];
+    private float r[];
     private float[] results;
     private TensorFlowClassifier classifier;
     private List<Float> data = new ArrayList<>();
+    private Timer collectTimer;
+    private Timer logTimer;
+    private TimerTask collectTimerTask;
+    private TimerTask logTimerTask;
+    private Button startPredictButton;
+    private Button stopPredictButton;
+    private boolean acceleroEmpty = true;
+    private boolean magnetoEmpty = true;
     private TextToSpeech tts;
-    private Timer collectTimer, logTimer;
-    private TimerTask collectTimerTask, logTimerTask;
-    private Button startPredictButton, stopPredictButton;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_predict_label);
+        setContentView(R.layout.activity_predict_gesture);
+        leftTextView = findViewById(R.id.left_prob);
+        rightTextView = findViewById(R.id.right_prob);
+        onTableTextView = findViewById(R.id.ontable_prob);
+        resultTextView = findViewById(R.id.gesture_result_values);
+
+        sensorManager = getSensorManager();
+        gyroscope = sensorManager.getDefaultSensor(Sensor.TYPE_GYROSCOPE);
+        accelerometer = sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER);
+        magnetometer = sensorManager.getDefaultSensor(Sensor.TYPE_MAGNETIC_FIELD);
+        gravmeter = sensorManager.getDefaultSensor(Sensor.TYPE_GRAVITY);
         gyroX = new ArrayList<>();
         gyroY = new ArrayList<>();
         gyroZ = new ArrayList<>();
@@ -68,147 +95,60 @@ public class PredictLabelActivity extends AppCompatActivity implements SensorEve
         gravX = new ArrayList<>();
         gravY = new ArrayList<>();
         gravZ = new ArrayList<>();
-
-        leftTextView = findViewById(R.id.left_prob);
-        rightTextView = findViewById(R.id.right_prob);
-        onTableTextView = findViewById(R.id.ontable_prob);
-        resultTextView = findViewById(R.id.result_values);
-
+        gyroscopeVal = new float[3];
+        acceleroVal = new float[3];
+        magnetoVal = new float[3];
+        gravVal = new float[3];
+        orientationVal = new float[3];
+        r = new float[9];
         classifier = new TensorFlowClassifier(getApplicationContext());
-        sensorManager = getSensorManager();
-        gyroscope = sensorManager.getDefaultSensor(Sensor.TYPE_GYROSCOPE);
-        accelerometer = sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER);
-        magnetometer = sensorManager.getDefaultSensor(Sensor.TYPE_MAGNETIC_FIELD);
-        gravmeter = sensorManager.getDefaultSensor(Sensor.TYPE_GRAVITY);
-        android.support.v7.preference.PreferenceManager
-                .setDefaultValues(this, R.xml.preferences, false);
-        SharedPreferences sharedPref =
-                android.support.v7.preference.PreferenceManager
-                        .getDefaultSharedPreferences(this);
-        gyroSwitchPref = sharedPref.getBoolean
-                (SettingsActivity.KEY_PREF_GYROSCOPE_SWITCH, false);
-        accSwitchPref = sharedPref.getBoolean
-                (SettingsActivity.KEY_PREF_ACCELEROMETER_SWITCH, false);
-        magSwitchPref = sharedPref.getBoolean
-                (SettingsActivity.KEY_PREF_MAGNETOMETER_SWITCH, false);
-        orientationSwitchPref = sharedPref.getBoolean
-                (SettingsActivity.KEY_PREF_ORIENTATION_SWITCH, false);
-        gravSwitchPref = sharedPref.getBoolean
-                (SettingsActivity.KEY_PREF_GRAVITY_SWITCH, false);
-        textToSpeechSwitchPref = sharedPref.getBoolean
-                (SettingsActivity.KEY_PREF_TEXT_TO_SPEECH, true);
         startPredictButton = findViewById(R.id.start_predict_button);
         stopPredictButton = findViewById(R.id.stop_predict_button);
         stopPredictButton.setClickable(false);
-        if (!gyroSwitchPref || !accSwitchPref || !magSwitchPref || !orientationSwitchPref || !gravSwitchPref) {
-            String message = "Please enable required sensors in the settings: ";
-            if (!gyroSwitchPref)
-                message += "gyroscope\n";
-            if (!accSwitchPref)
-                message += "accelerometer\n";
-            if (!magSwitchPref)
-                message += "magnetometer\n";
-            if (!orientationSwitchPref)
-                message += "orientation sensor\n";
-            if (!gravSwitchPref)
-                message += "gravity sensor\n";
-            AlertDialog.Builder alertDialogBuilder = new AlertDialog.Builder(this);
-            alertDialogBuilder.setMessage(message);
-
-            alertDialogBuilder.setPositiveButton("Close",
-                    new DialogInterface.OnClickListener() {
-                        @Override
-                        public void onClick(DialogInterface arg0, int arg1) {
-                            finish();
-                        }
-                    });
-            alertDialogBuilder.setOnCancelListener(new DialogInterface.OnCancelListener() {
-                @Override
-                public void onCancel(DialogInterface dialog) {
-                    // if back button is pressed
-                    finish();
-                }
-            });
-            AlertDialog alertDialog = alertDialogBuilder.create();
-            alertDialog.setCanceledOnTouchOutside(false);
-            alertDialog.show();
+        if (sensorManager == null || gyroscope == null || accelerometer == null
+                || magnetometer == null || gravmeter == null) {
+            CustomDialogFragment requiredSensorDialog = CustomDialogFragment.newInstance(200);
+            requiredSensorDialog.show(getFragmentManager(), "dialog");
+            startPredictButton.setClickable(false);
         }
     }
 
     @Override
     protected void onStart() {
         super.onStart();
-        if (gyroSwitchPref) {
-            sensorManager.registerListener(this, gyroscope,
-                    SensorManager.SENSOR_DELAY_FASTEST);
-        }
-        if (accSwitchPref) {
-            sensorManager.registerListener(this, accelerometer,
-                    SensorManager.SENSOR_DELAY_FASTEST);
-        }
-        if (magSwitchPref) {
-            sensorManager.registerListener(this, magnetometer,
-                    SensorManager.SENSOR_DELAY_FASTEST);
-        }
-        if (gravSwitchPref) {
-            sensorManager.registerListener(this, gravmeter,
-                    SensorManager.SENSOR_DELAY_FASTEST);
-        }
+        sensorManager.registerListener(this, gyroscope,
+                SensorManager.SENSOR_DELAY_FASTEST);
+        sensorManager.registerListener(this, accelerometer,
+                SensorManager.SENSOR_DELAY_FASTEST);
+        sensorManager.registerListener(this, magnetometer,
+                SensorManager.SENSOR_DELAY_FASTEST);
+        sensorManager.registerListener(this, gravmeter,
+                SensorManager.SENSOR_DELAY_FASTEST);
     }
 
     @Override
     protected void onPause() {
         super.onPause();
-        if (gyroSwitchPref) {
-            sensorManager.unregisterListener(this, gyroscope);
-        }
-        if (accSwitchPref) {
-            sensorManager.unregisterListener(this, accelerometer);
-        }
-        if (magSwitchPref) {
-            sensorManager.unregisterListener(this, magnetometer);
-        }
-        if (gravSwitchPref) {
-            sensorManager.unregisterListener(this, gravmeter);
-        }
+        sensorManager.unregisterListener(this);
     }
 
     @Override
     protected void onResume() {
         super.onResume();
-        if (gyroSwitchPref) {
-            sensorManager.registerListener(this, gyroscope,
-                    SensorManager.SENSOR_DELAY_FASTEST);
-        }
-        if (accSwitchPref) {
-            sensorManager.registerListener(this, accelerometer,
-                    SensorManager.SENSOR_DELAY_FASTEST);
-        }
-        if (magSwitchPref) {
-            sensorManager.registerListener(this, magnetometer,
-                    SensorManager.SENSOR_DELAY_FASTEST);
-        }
-        if (gravSwitchPref) {
-            sensorManager.registerListener(this, gravmeter,
-                    SensorManager.SENSOR_DELAY_FASTEST);
-        }
+        sensorManager.registerListener(this, gyroscope,
+                SensorManager.SENSOR_DELAY_FASTEST);
+        sensorManager.registerListener(this, accelerometer,
+                SensorManager.SENSOR_DELAY_FASTEST);
+        sensorManager.registerListener(this, magnetometer,
+                SensorManager.SENSOR_DELAY_FASTEST);
+        sensorManager.registerListener(this, gravmeter,
+                SensorManager.SENSOR_DELAY_FASTEST);
     }
 
     @Override
     protected void onStop() {
         super.onStop();
-        if (gyroSwitchPref) {
-            sensorManager.unregisterListener(this, gyroscope);
-        }
-        if (accSwitchPref) {
-            sensorManager.unregisterListener(this, accelerometer);
-        }
-        if (magSwitchPref) {
-            sensorManager.unregisterListener(this, magnetometer);
-        }
-        if (gravSwitchPref) {
-            sensorManager.unregisterListener(this, gravmeter);
-        }
+        sensorManager.unregisterListener(this);
     }
 
     @Override
@@ -230,7 +170,11 @@ public class PredictLabelActivity extends AppCompatActivity implements SensorEve
             default:
                 break;
         }
-        if (accSwitchPref && magSwitchPref && acceleroVal != null && magnetoVal != null) {
+        if (acceleroEmpty || magnetoEmpty) {
+            acceleroEmpty = (acceleroVal[0] == 0.0f && acceleroVal[1] == 0.0f && acceleroVal[2] == 0.0f);
+            magnetoEmpty = (magnetoVal[0] == 0.0f && magnetoVal[1] == 0.0f && magnetoVal[2] == 0.0f);
+        }
+        if (acceleroVal != null && magnetoVal != null) {
             SensorManager.getRotationMatrix(r, null, acceleroVal, magnetoVal);
             SensorManager.getOrientation(r, orientationVal);
         }
@@ -257,6 +201,28 @@ public class PredictLabelActivity extends AppCompatActivity implements SensorEve
                     Log.e("error", "Initialization Failed!");
             }
         });
+    }
+
+    private String findHighestProb(float[] results) {
+        int maxIndex = 0;
+        float max = 0.0f;
+        String maxClass = "";
+        for (int i = 0; i < results.length; i++) {
+            if (results[i] >= max) {
+                max = results[i];
+                maxIndex = i;
+            }
+        }
+        switch (maxIndex) {
+            case 0: maxClass = "left";
+                break;
+            case 1: maxClass = "on table";
+                break;
+            case 2: maxClass = "right";
+                break;
+            default: break;
+        }
+        return maxClass;
     }
 
     public void startPredict(View view) {
@@ -294,6 +260,7 @@ public class PredictLabelActivity extends AppCompatActivity implements SensorEve
                             rightTextView.setText("Right: " + Float.toString(round(results[2], 2)));
                             onTableTextView.setText("On table: " + Float.toString(round(results[1], 2)));
                             resultTextView.setText("Result: " + Arrays.toString(results));
+                            speak(findHighestProb(results));
                         }
                     });
                 }

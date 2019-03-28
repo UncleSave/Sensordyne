@@ -10,7 +10,7 @@ public class TensorFlowClassifier {
     }
 
     private TensorFlowInferenceInterface inferenceInterface;
-    private static final String MODEL_FILE = "file:///android_asset/model.pb";
+    private static final String MODEL_FILE = "file:///android_asset/lateststable.pb";
     private static final String INPUT_NODE = "lstm_1_input";
     private static final String[] OUTPUT_NODES = {"dense_2/Softmax"};
     private static final String OUTPUT_NODE = "dense_2/Softmax";

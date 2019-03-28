@@ -10,34 +10,52 @@ import android.os.Bundle;
 import android.os.Environment;
 import android.provider.Settings;
 import android.support.v7.app.AppCompatActivity;
+import android.text.method.ScrollingMovementMethod;
 import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import com.amazonaws.AmazonServiceException;
 import com.amazonaws.auth.AWSCredentialsProvider;
+import com.amazonaws.auth.CognitoCachingCredentialsProvider;
 import com.amazonaws.mobile.auth.core.IdentityHandler;
 import com.amazonaws.mobile.auth.core.IdentityManager;
 import com.amazonaws.mobile.client.AWSMobileClient;
 import com.amazonaws.mobile.client.AWSStartupHandler;
 import com.amazonaws.mobile.client.AWSStartupResult;
 import com.amazonaws.mobile.config.AWSConfiguration;
+import com.amazonaws.mobileconnectors.s3.transfermanager.TransferManager;
 import com.amazonaws.mobileconnectors.s3.transferutility.TransferListener;
 import com.amazonaws.mobileconnectors.s3.transferutility.TransferObserver;
 import com.amazonaws.mobileconnectors.s3.transferutility.TransferState;
 import com.amazonaws.mobileconnectors.s3.transferutility.TransferUtility;
+import com.amazonaws.regions.Regions;
+import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.AmazonS3Client;
+import com.amazonaws.services.s3.model.ListObjectsRequest;
+import com.amazonaws.services.s3.model.ListObjectsV2Request;
+import com.amazonaws.services.s3.model.ListObjectsV2Result;
+import com.amazonaws.services.s3.model.ObjectListing;
+import com.amazonaws.services.s3.model.S3ObjectSummary;
 
 import java.io.File;
+import java.util.ArrayList;
+import java.util.List;
 
 public class ManageFileActivity extends AppCompatActivity {
 
     private AWSCredentialsProvider credentialsProvider;
     private AWSConfiguration configuration;
+    private AmazonS3Client s3client;
+    private String bucketName;
+    private String keyName;
+    private TextView filesInfo;
     private EditText fileInfo;
-    private Button downloadFileButton, deleteFileButton;
+    private Button downloadFileButton;
+    private Button deleteFileButton;
     private String androidID;
 
     @Override
@@ -46,28 +64,32 @@ public class ManageFileActivity extends AppCompatActivity {
         setContentView(R.layout.activity_manage_file);
 
         responseToNoInternetAccess();
+        // Initialize the Amazon Cognito credentials provider
+        CognitoCachingCredentialsProvider credentialsProvider = new CognitoCachingCredentialsProvider(
+                getApplicationContext(),
+                "ap-southeast-1:3a7f3577-7580-4ee2-8a26-1e0f50d1019b", // Identity pool ID
+                Regions.AP_SOUTHEAST_1 // Region
+        );
+        //String identityId = credentialsProvider.getIdentityId();
+        //Log.d("LogTag", "my ID is " + identityId);
 
         // AWS Mobile hub backend integration
         AWSMobileClient.getInstance().initialize(this, new AWSStartupHandler() {
             @Override
             public void onComplete(AWSStartupResult awsStartupResult) {
-
                 // Obtain the reference to the AWSCredentialsProvider and AWSConfiguration objects
-                credentialsProvider = AWSMobileClient.getInstance().getCredentialsProvider();
+                //credentialsProvider = AWSMobileClient.getInstance().getCredentialsProvider();
                 configuration = AWSMobileClient.getInstance().getConfiguration();
-
                 // Use IdentityManager#getUserID to fetch the identity id.
                 IdentityManager.getDefaultIdentityManager().getUserID(new IdentityHandler() {
                     @Override
                     public void onIdentityId(String identityId) {
                         Log.d("YourMainActivity", "Identity ID = " + identityId);
-
                         // Use IdentityManager#getCachedUserID to
                         //  fetch the locally cached identity id.
                         final String cachedIdentityId =
                                 IdentityManager.getDefaultIdentityManager().getCachedUserID();
                     }
-
                     @Override
                     public void handleError(Exception exception) {
                         Log.d("YourMainActivity", "Error in retrieving the identity" + exception);
@@ -79,6 +101,33 @@ public class ManageFileActivity extends AppCompatActivity {
         androidID = Settings.Secure.getString(getContentResolver(),
                 Settings.Secure.ANDROID_ID);
         fileInfo = findViewById(R.id.file_info);
+        filesInfo = findViewById(R.id.files_info);
+        filesInfo.setMovementMethod(new ScrollingMovementMethod());
+        bucketName = "test-userfiles-mobilehub-1913606923";
+        if (credentialsProvider == null)
+            Toast.makeText(this, "null", Toast.LENGTH_SHORT).show();
+        s3client = new AmazonS3Client(credentialsProvider);
+        new AsyncTask<AmazonS3Client, Void, ArrayList<String>>() {
+            @Override
+            protected ArrayList<String> doInBackground(AmazonS3Client... amazonS3Clients) {
+                ListObjectsV2Result result = s3client.listObjectsV2(bucketName);
+                List<S3ObjectSummary> objectsInfo = result.getObjectSummaries();
+                ArrayList<String> objects = new ArrayList<>();
+                for (S3ObjectSummary objectInfo: objectsInfo) {
+                    if (!objectInfo.getKey().equals(androidID + '/') &&
+                            objectInfo.getKey().contains(androidID))
+                        objects.add(objectInfo.getKey().replaceFirst(androidID + '/', ""));
+                }
+                return objects;
+            }
+
+            @Override
+            protected void onPostExecute(ArrayList<String> objects) {
+                super.onPostExecute(objects);
+                filesInfo.setText(objects.toString());
+            }
+        }.execute(s3client);
+
         downloadFileButton = findViewById(R.id.download_button);
         deleteFileButton = findViewById(R.id.delete_button);
     }
@@ -126,12 +175,10 @@ public class ManageFileActivity extends AppCompatActivity {
 
     public void deleteFile(View view) {
         responseToNoInternetAccess();
+        keyName = androidID + "/" + fileInfo.getText().toString();
         new AsyncTask<Void, Void, Boolean>() {
             @Override
             protected Boolean doInBackground(Void... params) {
-                String bucketName = "test-userfiles-mobilehub-1913606923";
-                String keyName = androidID + "/" + fileInfo.getText().toString();
-                AmazonS3Client s3client = new AmazonS3Client(credentialsProvider);
                 boolean test = false;
                 try {
                     test = s3client.doesObjectExist(bucketName, keyName);
@@ -157,17 +204,15 @@ public class ManageFileActivity extends AppCompatActivity {
     }
 
     public void downloadFile(View view) {
+        responseToNoInternetAccess();
         if (!isExternalStorageWritable()) {
             Toast.makeText(this, "Storage permission denied", Toast.LENGTH_SHORT).show();
             return;
         }
+        keyName = androidID + "/" + fileInfo.getText().toString();
         new AsyncTask<Void, Void, Boolean>() {
             @Override
             protected Boolean doInBackground(Void... params) {
-                String bucketName = "test-userfiles-mobilehub-1913606923";
-                String keyName = androidID + "/" + fileInfo.getText().toString();
-                AmazonS3Client s3client = new AmazonS3Client(credentialsProvider);
-
                 boolean test = false;
                 try {
                     test = s3client.doesObjectExist(bucketName, keyName);

@@ -7,11 +7,21 @@
     android:padding="10dp"
     tools:context=".ManageFileActivity">
 
+    <TextView
+        android:id="@+id/files_info"
+        android:layout_width="match_parent"
+        android:layout_height="250dp"
+        app:layout_constraintLeft_toLeftOf="parent"
+        android:scrollbars="vertical"
+        android:textColor="#000"
+        android:textSize="21sp" />
+
     <EditText
         android:id="@+id/file_info"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         app:layout_constraintLeft_toLeftOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/files_info"
         android:hint="@string/enter_file_name_here"
         android:inputType="text"
         android:textColor="#000"

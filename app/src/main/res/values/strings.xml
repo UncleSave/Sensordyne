@@ -44,7 +44,7 @@
     <string name="delete">Delete</string>
 
     <!-- Strings related to Build Model -->
-    <string name="build">Build</string>
+    <string name="fit_model">Fit model</string>
 
     <!-- Strings related to Neural Network Settings -->
     <string name="save">Save</string>
@@ -57,7 +57,8 @@
     <string name="dropout_default_value">0.16</string>
     <string name="epoch_default_value">5</string>
     <string name="batchsize_default_value">5</string>
-    <string name="predict_label">Predict label</string>
+    <string name="predict_gesture">Predict gesture</string>
+    <string name="predict_morse_code">Predict morse code</string>
     <string name="time_step">Time step:</string>
     <string name="timestep_default_value">20</string>
     <string name="hidden_layer">Hidden Layer:</string>

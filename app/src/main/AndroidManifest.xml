@@ -48,54 +48,43 @@
             android:label="Device Info"
             android:screenOrientation="portrait"
             android:parentActivityName=".MainActivity">
-            <meta-data
-                android:name="android.support.PARENT_ACTIVITY"
-                android:value="unclesave.example.com.test2.MainActivity" />
         </activity>
         <activity
             android:name=".ManageFileActivity"
             android:label="Delete Dataset"
             android:screenOrientation="portrait"
             android:parentActivityName=".MainActivity">
-            <meta-data
-                android:name="android.support.PARENT_ACTIVITY"
-                android:value="unclesave.example.com.test2.MainActivity" />
         </activity>
         <activity
-            android:name=".BuildModelActivity"
+            android:name=".FitModelActivity"
             android:label="Build Model"
             android:screenOrientation="portrait"
             android:parentActivityName=".MainActivity">
-            <meta-data
-                android:name="android.support.PARENT_ACTIVITY"
-                android:value="unclesave.example.com.test2.MainActivity" />
         </activity>
         <activity
             android:name=".NetworkSettingsActivity"
             android:label="Model and Neural Network Settings"
             android:screenOrientation="portrait"
             android:parentActivityName=".MainActivity">
-            <meta-data
-                android:name="android.support.PARENT_ACTIVITY"
-                android:value="unclesave.example.com.test2.MainActivity" />
         </activity>
         <activity
             android:name=".SettingsActivity"
             android:label="Settings"
             android:screenOrientation="portrait"
             android:parentActivityName=".MainActivity">
-            <meta-data
-                android:name="android.support.PARENT_ACTIVITY"
-                android:value=".MainActivity" />
         </activity>
         <activity
-            android:name=".PredictLabelActivity"
+            android:name=".PredictGestureActivity"
             android:label="Predict Gesture"
             android:screenOrientation="portrait"
-            android:parentActivityName=".PredictLabelActivity">
-            <meta-data
-                android:name="android.support.PARENT_ACTIVITY"
-                android:value=".MainActivity" />
+            android:parentActivityName=".MainActivity">
+        </activity>
+
+        <activity
+            android:name=".PredictMorseCodeActivity"
+            android:label="Predict Morse Code"
+            android:screenOrientation="portrait"
+            android:parentActivityName=".MainActivity">
         </activity>
     </application>
 

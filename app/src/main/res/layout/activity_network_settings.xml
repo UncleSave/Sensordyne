@@ -280,7 +280,7 @@
         android:layout_height="wrap_content"
         android:clickable="true"
         android:focusable="false"
-        android:onClick="saveSettings"
+        android:onClick="saveFitModelSettings"
         android:text="Save Settings"
         app:layout_constraintTop_toBottomOf="@+id/timesteps_info" />
 

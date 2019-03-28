@@ -40,7 +40,7 @@ dependencies {
     //implementation 'com.amazonaws:aws-android-sdk-lambda:2.2.+'
     implementation('com.amazonaws:aws-android-sdk-cognitoauth:2.6.+@aar') { transitive = true }
     implementation('com.amazonaws:aws-android-sdk-mobile-client:2.6.+@aar') { transitive = true }
-    //implementation 'com.amazonaws:aws-android-sdk-apigateway-core:2.6.+'
+    implementation 'com.amazonaws:aws-android-sdk-apigateway-core:2.6.+'
     implementation 'com.squareup.okhttp3:okhttp:3.11.0'
     implementation 'org.tensorflow:tensorflow-android:+'
 }

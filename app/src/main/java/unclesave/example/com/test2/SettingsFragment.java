@@ -5,7 +5,6 @@ import android.content.Context;
 import android.hardware.Sensor;
 import android.hardware.SensorManager;
 import android.os.Bundle;
-import android.provider.Settings;
 import android.support.v4.app.Fragment;
 import android.support.v7.preference.CheckBoxPreference;
 import android.support.v7.preference.ListPreference;
@@ -13,24 +12,34 @@ import android.support.v7.preference.Preference;
 import android.support.v7.preference.PreferenceFragmentCompat;
 import android.support.v7.preference.SwitchPreferenceCompat;
 
-import java.util.Set;
-import java.util.prefs.PreferenceChangeEvent;
-import java.util.prefs.PreferenceChangeListener;
-
 /**
  * A simple {@link Fragment} subclass.
  */
 public class SettingsFragment extends PreferenceFragmentCompat {
 
-    private SwitchPreferenceCompat gyroscopeSetting, accelerometerSetting, magnetometerSetting,
-            orientationSetting, gravitySetting, linearaccelerometerSetting, proximitySetting, logTimerSetting;
+    private SwitchPreferenceCompat gyroscopeSetting;
+    private SwitchPreferenceCompat accelerometerSetting;
+    private SwitchPreferenceCompat magnetometerSetting;
+    private SwitchPreferenceCompat orientationSetting;
+    private SwitchPreferenceCompat gravitySetting;
+    private SwitchPreferenceCompat linearaccelerometerSetting;
+    private SwitchPreferenceCompat proximitySetting;
+    private SwitchPreferenceCompat logTimerSetting;
     private CheckBoxPreference lowPassFilterAccSetting;
     private boolean linearAccUnsupported;
-    private IntEditTextPreference timeLabelIntervalSetting, timeLoggingIntervalSetting, sensorSamplingDelaySetting;
-    private ListPreference collectModeSetting, timerModeSetting;
+    private IntEditTextPreference timeLabelIntervalSetting;
+    private IntEditTextPreference timeLoggingIntervalSetting;
+    private IntEditTextPreference sensorSamplingDelaySetting;
+    private ListPreference collectModeSetting;
+    private ListPreference timerModeSetting;
     private SwitchPreferenceCompat textToSpeechSetting;
     private SensorManager sensorManager;
-    private Sensor gyroscope, accelerometer, magnetometer, gravmeter, linearaccelerometer, proximity;
+    private Sensor gyroscope;
+    private Sensor accelerometer;
+    private Sensor magnetometer;
+    private Sensor gravmeter;
+    private Sensor linearaccelerometer;
+    private Sensor proximity;
     private Preference.OnPreferenceChangeListener prefChangeListener;
 
     @Override
