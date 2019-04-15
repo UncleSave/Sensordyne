@@ -1,0 +1,129 @@
+<?xml version="1.0" encoding="utf-8"?>
+<android.support.constraint.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:padding="10dp"
+    app:layout_behavior="@string/appbar_scrolling_view_behavior"
+    tools:context=".PredictGestureActivity">
+
+    <Button
+        android:id="@+id/start_predict_button"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:clickable="true"
+        android:focusable="false"
+        android:text="@string/start_predict"
+        android:onClick="startPredict"
+        />
+
+    <Button
+        android:id="@+id/stop_predict_button"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:clickable="false"
+        android:text="@string/stop_predict"
+        android:onClick="stopPredict"
+        app:layout_constraintLeft_toRightOf="@+id/start_predict_button" />
+
+    <!--<TextView
+        android:id="@+id/e_prob"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        app:layout_constraintLeft_toLeftOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/start_predict_button"
+        android:text="e: "
+        android:textColor="#000"
+        android:textSize="15sp"
+        android:padding="10dp" />
+
+    <TextView
+        android:id="@+id/i_prob"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        app:layout_constraintLeft_toLeftOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/e_prob"
+        android:text="i: "
+        android:textColor="#000"
+        android:textSize="15sp"
+        android:padding="10dp" />
+
+    <TextView
+        android:id="@+id/s_prob"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        app:layout_constraintLeft_toLeftOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/i_prob"
+        android:text="s: "
+        android:textColor="#000"
+        android:textSize="15sp"
+        android:padding="10dp" />
+
+    <TextView
+        android:id="@+id/h_prob"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        app:layout_constraintLeft_toLeftOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/s_prob"
+        android:text="h: "
+        android:textColor="#000"
+        android:textSize="15sp"
+        android:padding="10dp" />-->
+
+    <TextView
+        android:id="@+id/t_prob"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        app:layout_constraintLeft_toLeftOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/start_predict_button"
+        android:text="@string/t"
+        android:textColor="#000"
+        android:textSize="15sp"
+        android:padding="10dp" />
+
+    <TextView
+        android:id="@+id/m_prob"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        app:layout_constraintLeft_toLeftOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/t_prob"
+        android:text="@string/m"
+        android:textColor="#000"
+        android:textSize="15sp"
+        android:padding="10dp" />
+
+    <TextView
+        android:id="@+id/n_prob"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        app:layout_constraintLeft_toLeftOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/m_prob"
+        android:text="@string/n"
+        android:textColor="#000"
+        android:textSize="15sp"
+        android:padding="10dp" />
+
+    <!--<TextView
+        android:id="@+id/mistake_prob"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        app:layout_constraintLeft_toLeftOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/o_prob"
+        android:text="mistake: "
+        android:textColor="#000"
+        android:textSize="15sp"
+        android:padding="10dp" />-->
+
+    <TextView
+        android:id="@+id/morse_code_result_values"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        app:layout_constraintLeft_toLeftOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/n_prob"
+        android:text="@string/result"
+        android:textColor="#000"
+        android:textSize="15sp"
+        android:padding="10dp" />
+
+</android.support.constraint.ConstraintLayout>
