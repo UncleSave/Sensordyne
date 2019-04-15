@@ -1,8 +1,9 @@
-package unclesave.example.com.test2;
+package unclesave.example.com.sensordyne;
 
 import android.app.ProgressDialog;
 import android.content.Context;
 
+// Helper class which creates customized progress dialog
 public class CustomProgressDialog extends ProgressDialog {
     private String message;
     private int progressStyle;
@@ -32,6 +33,5 @@ public class CustomProgressDialog extends ProgressDialog {
         this.setProgress(progress);
         this.setMax(maxProgress);
     }
-
 
 }

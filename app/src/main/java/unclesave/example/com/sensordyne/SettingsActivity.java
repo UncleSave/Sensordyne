@@ -1,9 +1,10 @@
-package unclesave.example.com.test2;
+package unclesave.example.com.sensordyne;
 
 import android.content.Intent;
 import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
 
+// An activity that specifies each preference's key
 public class SettingsActivity extends AppCompatActivity {
     public static final String KEY_PREF_GYROSCOPE_SWITCH = "gyroscope_switch";
     public static final String KEY_PREF_ACCELEROMETER_SWITCH = "accelerometer_switch";

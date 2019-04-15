@@ -1,4 +1,4 @@
-package unclesave.example.com.test2;
+package unclesave.example.com.sensordyne;
 
 import android.content.Context;
 import android.view.LayoutInflater;
@@ -9,11 +9,12 @@ import android.widget.CheckedTextView;
 
 import java.util.ArrayList;
 
+// Helper class which creates the list of sensors in CheckSensorActivity
 public class CheckSensorAdapter extends BaseAdapter {
-    ArrayList<String> names;
-    Context context;
-    LayoutInflater layoutInflater;
-    String value;
+    private ArrayList<String> names;
+    private Context context;
+    private LayoutInflater layoutInflater;
+    private String value;
 
     public CheckSensorAdapter(Context context, ArrayList<String> names) {
         this.context = context;

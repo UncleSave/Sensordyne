@@ -45,7 +45,7 @@
         android:layout_height="wrap_content"
         android:clickable="false"
         android:onClick="getLocalCSV"
-        android:text="Get local CSV"
+        android:text="@string/get_local_csv"
         app:layout_constraintLeft_toRightOf="@+id/export_button" />
 
     <TextView
@@ -116,6 +116,7 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:clickable="true"
+        android:focusable="false"
         android:text="@string/start_collect"
         android:onClick="startCollect"
         app:layout_constraintTop_toBottomOf="@+id/label_list_info" />

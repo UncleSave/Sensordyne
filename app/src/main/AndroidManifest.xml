@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    package="unclesave.example.com.test2">
+    package="unclesave.example.com.sensordyne">
 
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
@@ -19,12 +19,13 @@
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/AppTheme">
+
         <service
             android:name="com.amazonaws.mobileconnectors.s3.transferutility.TransferService"
             android:enabled="true" />
 
         <activity
-            android:name=".MainActivity"
+            android:name="unclesave.example.com.sensordyne.MainActivity"
             android:label="@string/app_name"
             android:screenOrientation="portrait"
             android:theme="@style/AppTheme.NoActionBar">
@@ -35,56 +36,56 @@
             </intent-filter>
         </activity>
         <activity
-            android:name=".CheckSensorActivity"
+            android:name="unclesave.example.com.sensordyne.CheckSensorActivity"
             android:label="Check Sensor"
             android:screenOrientation="portrait"
-            android:parentActivityName=".MainActivity">
+            android:parentActivityName="unclesave.example.com.sensordyne.MainActivity">
             <meta-data
                 android:name="android.support.PARENT_ACTIVITY"
-                android:value="unclesave.example.com.test2.MainActivity" />
+                android:value="unclesave.example.com.sensordyne.MainActivity" />
         </activity>
         <activity
-            android:name=".DeviceInfoActivity"
+            android:name="unclesave.example.com.sensordyne.DeviceInfoActivity"
             android:label="Device Info"
             android:screenOrientation="portrait"
-            android:parentActivityName=".MainActivity">
+            android:parentActivityName="unclesave.example.com.sensordyne.MainActivity">
         </activity>
         <activity
-            android:name=".ManageFileActivity"
+            android:name="unclesave.example.com.sensordyne.ManageFileActivity"
             android:label="Delete Dataset"
             android:screenOrientation="portrait"
-            android:parentActivityName=".MainActivity">
+            android:parentActivityName="unclesave.example.com.sensordyne.MainActivity">
         </activity>
         <activity
-            android:name=".FitModelActivity"
-            android:label="Build Model"
+            android:name="unclesave.example.com.sensordyne.FitModelActivity"
+            android:label="Fit Model"
             android:screenOrientation="portrait"
-            android:parentActivityName=".MainActivity">
+            android:parentActivityName="unclesave.example.com.sensordyne.MainActivity">
         </activity>
         <activity
-            android:name=".NetworkSettingsActivity"
+            android:name="unclesave.example.com.sensordyne.NetworkSettingsActivity"
             android:label="Model and Neural Network Settings"
             android:screenOrientation="portrait"
-            android:parentActivityName=".MainActivity">
+            android:parentActivityName="unclesave.example.com.sensordyne.MainActivity">
         </activity>
         <activity
-            android:name=".SettingsActivity"
+            android:name="unclesave.example.com.sensordyne.SettingsActivity"
             android:label="Settings"
             android:screenOrientation="portrait"
-            android:parentActivityName=".MainActivity">
+            android:parentActivityName="unclesave.example.com.sensordyne.MainActivity">
         </activity>
         <activity
-            android:name=".PredictGestureActivity"
+            android:name="unclesave.example.com.sensordyne.PredictGestureActivity"
             android:label="Predict Gesture"
             android:screenOrientation="portrait"
-            android:parentActivityName=".MainActivity">
+            android:parentActivityName="unclesave.example.com.sensordyne.MainActivity">
         </activity>
 
         <activity
-            android:name=".PredictMorseCodeActivity"
+            android:name="unclesave.example.com.sensordyne.PredictMorseCodeActivity"
             android:label="Predict Morse Code"
             android:screenOrientation="portrait"
-            android:parentActivityName=".MainActivity">
+            android:parentActivityName="unclesave.example.com.sensordyne.MainActivity">
         </activity>
     </application>
 

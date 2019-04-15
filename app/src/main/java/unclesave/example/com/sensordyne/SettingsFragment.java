@@ -1,4 +1,4 @@
-package unclesave.example.com.test2;
+package unclesave.example.com.sensordyne;
 
 
 import android.content.Context;
@@ -12,9 +12,7 @@ import android.support.v7.preference.Preference;
 import android.support.v7.preference.PreferenceFragmentCompat;
 import android.support.v7.preference.SwitchPreferenceCompat;
 
-/**
- * A simple {@link Fragment} subclass.
- */
+// A settings fragment which setup all settings
 public class SettingsFragment extends PreferenceFragmentCompat {
 
     private SwitchPreferenceCompat gyroscopeSetting;
@@ -114,7 +112,6 @@ public class SettingsFragment extends PreferenceFragmentCompat {
         logTimerSetting = (SwitchPreferenceCompat) findPreference(SettingsActivity.KEY_PREF_LOG_TIMER_SWITCH);
         timerModeSetting = (ListPreference) findPreference(SettingsActivity.KEY_PREF_TIMER_MODE);
         textToSpeechSetting = (SwitchPreferenceCompat) findPreference(SettingsActivity.KEY_PREF_TEXT_TO_SPEECH);
-
         prefChangeListener = new Preference.OnPreferenceChangeListener() {
             @Override
             public boolean onPreferenceChange(Preference preference, Object newValue) {
@@ -159,5 +156,8 @@ public class SettingsFragment extends PreferenceFragmentCompat {
         if (linearAccUnsupported)
             gravitySetting.setOnPreferenceChangeListener(prefChangeListener);
         linearaccelerometerSetting.setOnPreferenceChangeListener(prefChangeListener);
+        timeLoggingIntervalSetting.setOnPreferenceChangeListener(prefChangeListener);
+        timeLabelIntervalSetting.setOnPreferenceChangeListener(prefChangeListener);
+        sensorSamplingDelaySetting.setOnPreferenceChangeListener(prefChangeListener);
     }
 }

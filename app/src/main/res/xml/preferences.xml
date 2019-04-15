@@ -42,27 +42,24 @@
         android:key="proximity_switch"
         android:summary="Keep track of the proximity data"
         android:title="Proximity data" />
-    <unclesave.example.com.test2.IntEditTextPreference
+    <unclesave.example.com.sensordyne.IntEditTextPreference
         android:defaultValue="4000"
         android:key="time_label_interval"
-        android:numeric="integer"
         android:selectAllOnFocus="true"
         android:singleLine="true"
         android:summary="Set the label interval for collection process"
         android:title="Label interval (millisecond)" />
-    <unclesave.example.com.test2.IntEditTextPreference
+    <unclesave.example.com.sensordyne.IntEditTextPreference
         android:defaultValue="20"
         android:key="time_logging_interval"
-        android:numeric="integer"
         android:selectAllOnFocus="true"
         android:singleLine="true"
         android:summary="Set the logging interval for collection process"
         android:title="Log data interval (millisecond)"
         android:dependency="log_timer_switch" />
-    <unclesave.example.com.test2.IntEditTextPreference
+    <unclesave.example.com.sensordyne.IntEditTextPreference
         android:defaultValue="5000"
         android:key="sensor_sampling_delay"
-        android:numeric="integer"
         android:selectAllOnFocus="true"
         android:singleLine="true"
         android:summary="Set the sampling delay or use the below delay, NORMAL(200000)=3, UI(60000)=2, GAME(20000)=1, FASTEST(5000)=0"

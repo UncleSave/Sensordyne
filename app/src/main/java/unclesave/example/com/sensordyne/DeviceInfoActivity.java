@@ -1,4 +1,4 @@
-package unclesave.example.com.test2;
+package unclesave.example.com.sensordyne;
 
 import android.os.Build;
 import android.os.Bundle;
@@ -6,6 +6,7 @@ import android.provider.Settings;
 import android.support.v7.app.AppCompatActivity;
 import android.widget.TextView;
 
+// An activity which gets the device information
 public class DeviceInfoActivity extends AppCompatActivity {
 
     @Override

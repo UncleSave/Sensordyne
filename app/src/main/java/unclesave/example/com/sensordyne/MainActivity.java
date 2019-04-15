@@ -1,8 +1,6 @@
-package unclesave.example.com.test2;
+package unclesave.example.com.sensordyne;
 
-import android.Manifest;
 import android.app.ProgressDialog;
-import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
@@ -13,21 +11,18 @@ import android.hardware.Sensor;
 import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
 import android.hardware.SensorManager;
-import android.net.ConnectivityManager;
-import android.net.NetworkInfo;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.os.Environment;
-import android.provider.Settings;
 import android.speech.tts.TextToSpeech;
 import android.support.annotation.NonNull;
 import android.support.design.widget.NavigationView;
 import android.support.v4.app.ActivityCompat;
-import android.support.v4.content.ContextCompat;
 import android.support.v4.view.GravityCompat;
 import android.support.v4.widget.DrawerLayout;
 import android.support.v7.app.ActionBarDrawerToggle;
 import android.support.v7.app.AppCompatActivity;
+import android.support.v7.preference.PreferenceManager;
 import android.support.v7.widget.Toolbar;
 import android.util.Log;
 import android.view.Menu;
@@ -38,20 +33,10 @@ import android.widget.EditText;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import com.amazonaws.auth.AWSCredentialsProvider;
-import com.amazonaws.auth.CognitoCachingCredentialsProvider;
-import com.amazonaws.mobile.auth.core.IdentityHandler;
-import com.amazonaws.mobile.auth.core.IdentityManager;
-import com.amazonaws.mobile.client.AWSMobileClient;
-import com.amazonaws.mobile.client.AWSStartupHandler;
-import com.amazonaws.mobile.client.AWSStartupResult;
-import com.amazonaws.mobile.config.AWSConfiguration;
 import com.amazonaws.mobileconnectors.s3.transferutility.TransferListener;
 import com.amazonaws.mobileconnectors.s3.transferutility.TransferObserver;
 import com.amazonaws.mobileconnectors.s3.transferutility.TransferState;
 import com.amazonaws.mobileconnectors.s3.transferutility.TransferUtility;
-import com.amazonaws.regions.Regions;
-import com.amazonaws.services.s3.AmazonS3Client;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -69,12 +54,12 @@ import java.util.Timer;
 import java.util.TimerTask;
 
 
-// AWS Mobile hub backend integration
-
+// The main activity which mainly handles the data collection process as well as exporting the data to S3 cloud storage
 public class MainActivity extends AppCompatActivity
         implements NavigationView.OnNavigationItemSelectedListener, SensorEventListener {
 
-    private static final int PERMISSION_ALL = 1;
+    private PermissionAccessHandler permissionAccessHandler;
+    private S3Handler s3Handler;
     private float cutoffFrequency = 0.3f;
     private int accFilterCount = 0;
     private long accTimeStamp;
@@ -88,11 +73,11 @@ public class MainActivity extends AppCompatActivity
     private boolean gyroSwitchPref;
     private boolean accSwitchPref;
     private boolean magSwitchPref;
-    private boolean gravSwitchPref;
     private boolean orientationSwitchPref;
+    private boolean gravSwitchPref;
     private boolean linearAccSwitchPref;
+    private boolean linearAccUnsupported;
     private boolean proximitySwitchPref;
-    private boolean textToSpeechSwitchPref;
     private boolean logTimerSwitchPref;
     private boolean lpfLinearAccCheckBoxPref;
     private int timeLabelIntervalPref;
@@ -100,8 +85,7 @@ public class MainActivity extends AppCompatActivity
     private int sensorSamplingDelayPref;
     private String collectModePref;
     private String timerModePref;
-    private boolean linearAccUnsupported;
-    //private TextView gyroscopeInfo, accelerometerInfo;
+    private boolean textToSpeechSwitchPref;
     private Button exportCloudButton;
     private Button localCSVButton;
     private TextView labelInstruct;
@@ -112,16 +96,13 @@ public class MainActivity extends AppCompatActivity
     private Button startCollectButton;
     private Button stopCollectButton;
     private TextView automatedEventInfo;
-    private AWSCredentialsProvider credentialsProvider;
-    private AWSConfiguration configuration;
-    private String androidID;
     private float gyroscopeVal[];
     private float acceleroVal[];
     private float magnetoVal[];
     private float orientationVal[];
     private float gravVal[];
     private float linearAcceleroVal[];
-    private long proximityVal;
+    private int proximityVal;
     private float r[];
     private long timeStamp;
     private SQLiteDatabase sensorDataDB = null;
@@ -132,49 +113,23 @@ public class MainActivity extends AppCompatActivity
     private boolean gravEmpty = true;
     private boolean accEmpty = true;
     private String label = "";
-    private StringBuilder insertCommand = new StringBuilder();
     private SQLiteStatement insert;
     private Timer collectTimer;
     private Timer logTimer;
     private TextToSpeech tts;
-    private CustomDialogFragment permissionDialog = null;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-        responseToNoPermission();
-        permissionDialog = null;
-        responseToNoInternetAccess();
-        // AWS Mobile hub backend integration
-        AWSMobileClient.getInstance().initialize(this, new AWSStartupHandler() {
-            @Override
-            public void onComplete(AWSStartupResult awsStartupResult) {
-                // Obtain the reference to the AWSCredentialsProvider and AWSConfiguration objects
-                credentialsProvider = AWSMobileClient.getInstance().getCredentialsProvider();
-                configuration = AWSMobileClient.getInstance().getConfiguration();
-                // Use IdentityManager#getUserID to fetch the identity id.
-                IdentityManager.getDefaultIdentityManager().getUserID(new IdentityHandler() {
-                    @Override
-                    public void onIdentityId(String identityId) {
-                        Log.d("YourMainActivity", "Identity ID = " + identityId);
-                        // Use IdentityManager#getCachedUserID to
-                        //  fetch the locally cached identity id.
-                        final String cachedIdentityId =
-                                IdentityManager.getDefaultIdentityManager().getCachedUserID();
-                    }
-                    @Override
-                    public void handleError(Exception exception) {
-                        Log.d("YourMainActivity", "Error in retrieving the identity" + exception);
-                    }
-                });
-            }
-        }).execute();
-        /*CognitoCachingCredentialsProvider cognitoProvider = new CognitoCachingCredentialsProvider(
-                getApplicationContext(),
-                "us-east-1:0c63f012-ff89-4907-88ea-527828cd5db0", // Identity pool ID
-                Regions.US_EAST_1 // Region
-        );*/
+        // Checks the permission given with permission handler
+        permissionAccessHandler = new PermissionAccessHandler(this);
+        permissionAccessHandler.responseToNoPermission();
+        // Checks the internet access with permission handler
+        if (!permissionAccessHandler.isInternetAccessAvailable())
+            permissionAccessHandler.responseToNoInternetAccess();
+        // Allows the access to S3 cloud storage with s3 handler
+        s3Handler = new S3Handler(MainActivity.this, this);
 
         Toolbar toolbar = findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
@@ -186,11 +141,9 @@ public class MainActivity extends AppCompatActivity
         NavigationView navigationView = findViewById(R.id.nav_view);
         navigationView.setNavigationItemSelectedListener(this);
 
-        android.support.v7.preference.PreferenceManager
-                .setDefaultValues(this, R.xml.preferences, false);
-        SharedPreferences sharedPref =
-                android.support.v7.preference.PreferenceManager
-                        .getDefaultSharedPreferences(this);
+        // Checks the preferences done from settings section
+        PreferenceManager.setDefaultValues(this, R.xml.preferences, false);
+        SharedPreferences sharedPref = PreferenceManager.getDefaultSharedPreferences(this);
         gyroSwitchPref = sharedPref.getBoolean
                 (SettingsActivity.KEY_PREF_GYROSCOPE_SWITCH, false);
         accSwitchPref = sharedPref.getBoolean
@@ -221,9 +174,8 @@ public class MainActivity extends AppCompatActivity
                 (SettingsActivity.KEY_PREF_TIMER_MODE, "Schedule");
         textToSpeechSwitchPref = sharedPref.getBoolean
                 (SettingsActivity.KEY_PREF_TEXT_TO_SPEECH, false);
-        androidID = Settings.Secure.getString(getContentResolver(),
-                Settings.Secure.ANDROID_ID);
         sensorManager = (SensorManager)getSystemService(SENSOR_SERVICE);
+        // Initializes the array if the sensor data monitoring is toggled in settings section
         if (sensorManager != null) {
             if (gyroSwitchPref) {
                 gyroscope = sensorManager.getDefaultSensor(Sensor.TYPE_GYROSCOPE);
@@ -276,12 +228,15 @@ public class MainActivity extends AppCompatActivity
         stopCollectButton.setClickable(false);
         automatedEventInfo.setVisibility(View.GONE);
 
+        // Deletes the database previously
         getApplicationContext().deleteDatabase("CurInstSensorDB");
+        // Creates the database for storing sensor records
         createDatabase();
         if (textToSpeechSwitchPref)
             speak("Welcome to Sensordyne!");
 
-        //559, 560
+        // Prepares the insert statement for storing sensor records later
+        StringBuilder insertCommand = new StringBuilder();
         insertCommand.append("INSERT INTO sensordata (timestamp, label");
         if (gyroSwitchPref)
             insertCommand.append(", gyroX, gyroY, gyroZ");
@@ -314,45 +269,40 @@ public class MainActivity extends AppCompatActivity
             insertCommand.append(", ?");
         insertCommand.append(");");
         insert = sensorDataDB.compileStatement(insertCommand.toString());
-        /*Toast.makeText(this, "Gyro: " + Boolean.toString(gyroSwitchPref) +
-                " " + "Acc: " + Boolean.toString(accSwitchPref) +
-                        " " + "Mag: " + Boolean.toString(magSwitchPref) +
-                        " " + "Orien: " + Boolean.toString(orientationSwitchPref) +
-                        " " + "Grav: " + Boolean.toString(gravSwitchPref) +
-                        " " + "Linear acc: " + Boolean.toString(linearAccSwitchPref)
-                , Toast.LENGTH_LONG).show();*/
-        /*Toast.makeText(this, "Label: " + timeLabelIntervalPref
-                + " Log: " + timeLoggingIntervalPref + " Sensor: " + sensorSamplingDelayPref, Toast.LENGTH_LONG).show();*/
-        //Toast.makeText(this, "Collect mode: " + collectModePref + " Timer mode: " + timerModePref, Toast.LENGTH_LONG).show();
     }
 
     @Override
     protected void onStart() {
         super.onStart();
+        // Allows sensors to listen to events
         onListener();
     }
 
     @Override
     protected void onPause() {
         super.onPause();
+        // Disallows sensors to listen to events
         offListener();
     }
 
     @Override
     protected void onResume() {
         super.onResume();
+        // Allows sensors to listen to events
         onListener();
     }
 
     @Override
     protected void onStop() {
         super.onStop();
+        // Disallows sensors to listen to events
         offListener();
     }
 
     @Override
     protected void onDestroy() {
         super.onDestroy();
+        // If the application folder contains the record previously, deletes the record
         File file = new File(getApplicationContext().getFilesDir(), "output.csv");
         if (file.exists())
             file.delete();
@@ -413,9 +363,9 @@ public class MainActivity extends AppCompatActivity
             Intent getManageFileIntent = new Intent(this, ManageFileActivity.class);
             startActivity(getManageFileIntent);
             return true;
-        } else if (id == R.id.nav_build_model_info) {
-            Intent getBuildModelIntent = new Intent(this, FitModelActivity.class);
-            startActivity(getBuildModelIntent);
+        } else if (id == R.id.nav_fit_model_info) {
+            Intent getFitModelIntent = new Intent(this, FitModelActivity.class);
+            startActivity(getFitModelIntent);
             return true;
         } else if (id == R.id.nav_network_settings_info) {
             Intent getNetworkSettingsIntent = new Intent(this, NetworkSettingsActivity.class);
@@ -437,8 +387,9 @@ public class MainActivity extends AppCompatActivity
 
     @Override
     public void onSensorChanged(SensorEvent event) {
+        // Gets the sensors to store the values in their arrays respectively
         int sensorType = event.sensor.getType();
-        if (sensorType == Sensor.TYPE_GRAVITY || sensorType == Sensor.TYPE_ACCELEROMETER) {
+        if (sensorType == Sensor.TYPE_GRAVITY || sensorType == Sensor.TYPE_ACCELEROMETER && accSwitchPref && gravSwitchPref) {
             if (gravEmpty || accEmpty) {
                 gravEmpty = (gravVal[0] == 0.0f && gravVal[1] == 0.0f && gravVal[2] == 0.0f) ? true : false;
                 accEmpty = (acceleroVal[0] == 0.0f && acceleroVal[1] == 0.0f && acceleroVal[2] == 0.0f) ? true : false;
@@ -474,7 +425,7 @@ public class MainActivity extends AppCompatActivity
                 timeStamp = event.timestamp;
                 break;
             case Sensor.TYPE_PROXIMITY:
-                proximityVal = (event.values[0] == 0.0f)? 0L: 1L;
+                proximityVal = (event.values[0] == 0.0f)? 0: 1;
                 timeStamp = event.timestamp;
                 break;
             default: break;
@@ -493,6 +444,14 @@ public class MainActivity extends AppCompatActivity
             new loggingTask(this).execute();
     }
 
+    // References: https://stackoverflow.com/questions/44309241/warning-this-asynctask-class-should-be-static-or-leaks-might-occur
+    // The class specifically prevents the warning shown below
+    /* This AsyncTask class should be static or leaks might occur (anonymous android.os.AsyncTask)
+    A static field will leak contexts. Non-static inner classes have an implicit reference to their outer class.
+    If that outer class is for example a Fragment or Activity, then this reference means that the long-running
+    handler/loader/task will hold a reference to the activity which prevents it from getting garbage collected.
+    Similarly, direct field references to activities and fragments from these longer running instances can cause leaks.
+    ViewModel classes should never point to Views or non-application Contexts. */
     private static class loggingTask extends AsyncTask<Void, Void, Void> {
         private WeakReference<MainActivity> activityReference;
 
@@ -549,6 +508,7 @@ public class MainActivity extends AppCompatActivity
         }
     }
 
+    // Allows low pass filtering for sensor
     private float calcAlpha(long curTimeStamp) {
         float timeConstant = 1 / cutoffFrequency;
         float deltaT = 1 / (accFilterCount++ / (curTimeStamp - accTimeStamp) / 1000000000.0f);
@@ -568,20 +528,27 @@ public class MainActivity extends AppCompatActivity
     public void onAccuracyChanged(Sensor sensor, int accuracy) {
     }
 
+    public PermissionAccessHandler getPermissionAccessHandler() { return permissionAccessHandler; }
+
+    // Checking the permission requires the callback function to exist in the current activity
     @Override
     public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
         switch (requestCode) {
-            case PERMISSION_ALL:
+            case PermissionAccessHandler.PERMISSION_ALL:
                 for (int i = 0; i < grantResults.length; i++) {
                     if (grantResults[i] == PackageManager.PERMISSION_DENIED) {
                         if (!ActivityCompat.shouldShowRequestPermissionRationale(this,
                                 permissions[i])) {
-                            CustomDialogFragment permissionSettingsDialog = CustomDialogFragment.newInstance(100);
-                            permissionSettingsDialog.show(getFragmentManager(), "dialog");
+                            if (permissionAccessHandler.getPermissionSettingsDialog() == null) {
+                                permissionAccessHandler.setPermissionSettingsDialog(CustomDialogFragment.newInstance(100));
+                                permissionAccessHandler.getPermissionSettingsDialog().show(getFragmentManager(), "dialog");
+                                permissionAccessHandler.setPermissionSettingsDialog(null);
+                            }
                         } else {
-                            if (permissionDialog == null) {
-                                permissionDialog = CustomDialogFragment.newInstance(101);
-                                permissionDialog.show(getFragmentManager(), "dialog");
+                            if (permissionAccessHandler.getPermissionDialog() == null) {
+                                permissionAccessHandler.setPermissionDialog(CustomDialogFragment.newInstance(101));
+                                permissionAccessHandler.getPermissionDialog().show(getFragmentManager(), "dialog");
+                                permissionAccessHandler.setPermissionDialog(null);
                             }
                         }
                     }
@@ -591,66 +558,8 @@ public class MainActivity extends AppCompatActivity
         }
     }
 
-    private String[] convertArrayListStringToStringOfArray(ArrayList<String> source) {
-        String[] result = new String[source.size()];
-        for (int i = 0; i < source.size(); i++)
-            result[i] = source.get(i);
-        return result;
-    }
-
-    public void responseToNoPermission() {
-        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.M) {
-            ArrayList<String> permissionsNeeded = new ArrayList<>();
-            if (ContextCompat.checkSelfPermission(this, Manifest.permission.INTERNET)
-                    != PackageManager.PERMISSION_GRANTED)
-                permissionsNeeded.add(Manifest.permission.INTERNET);
-            if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_WIFI_STATE)
-                    != PackageManager.PERMISSION_GRANTED)
-                permissionsNeeded.add(Manifest.permission.ACCESS_WIFI_STATE);
-            if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_NETWORK_STATE)
-                    != PackageManager.PERMISSION_GRANTED)
-                permissionsNeeded.add(Manifest.permission.ACCESS_NETWORK_STATE);
-            if (ContextCompat.checkSelfPermission(this, Manifest.permission.READ_EXTERNAL_STORAGE)
-                    != PackageManager.PERMISSION_GRANTED)
-                permissionsNeeded.add(Manifest.permission.READ_EXTERNAL_STORAGE);
-            if (ContextCompat.checkSelfPermission(this, Manifest.permission.WRITE_EXTERNAL_STORAGE)
-                    != PackageManager.PERMISSION_GRANTED)
-                permissionsNeeded.add(Manifest.permission.WRITE_EXTERNAL_STORAGE);
-            if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION)
-                    != PackageManager.PERMISSION_GRANTED)
-                permissionsNeeded.add(Manifest.permission.ACCESS_FINE_LOCATION);
-
-            if (permissionsNeeded.size() != 0)
-                ActivityCompat.requestPermissions(this,
-                        convertArrayListStringToStringOfArray(permissionsNeeded),
-                        PERMISSION_ALL);
-        }
-    }
-
-    // Checks if internet access is available
-    private boolean isInternetAccessAvailable() {
-        // Checks whether wifi or mobile data is connected
-        ConnectivityManager cm =
-                (ConnectivityManager) this.getSystemService(Context.CONNECTIVITY_SERVICE);
-        NetworkInfo activeNetwork;
-        if (cm != null)
-            activeNetwork = cm.getActiveNetworkInfo();
-        else {
-            Log.e("Network error", "Cannot get network info");
-            return false;
-        }
-        return activeNetwork != null && activeNetwork.isConnectedOrConnecting();
-    }
-
-    private void responseToNoInternetAccess() {
-        if (!isInternetAccessAvailable()) {
-            CustomDialogFragment internetAccessDialog = CustomDialogFragment.newInstance(102);
-            internetAccessDialog.show(getFragmentManager(), null);
-        }
-            //createAlertDialog("Please enable wifi or mobile data");
-    }
-
-    public void onListener() {
+    // Registers sensors' listener
+    private void onListener() {
         if (gyroSwitchPref)
             sensorManager.registerListener(this, gyroscope,
                     sensorSamplingDelayPref);
@@ -675,26 +584,12 @@ public class MainActivity extends AppCompatActivity
                     sensorSamplingDelayPref);
     }
 
-    public void offListener() {
-        /*if (gyroSwitchPref)
-            sensorManager.unregisterListener(this, gyroscope);
-        if (accSwitchPref
-                || (linearAccSwitchPref && linearAccUnsupported)
-                || (linearAccSwitchPref && !linearAccUnsupported && lpfLinearAccCheckBoxPref))
-            sensorManager.unregisterListener(this, accelerometer);
-        if (magSwitchPref)
-            sensorManager.unregisterListener(this, magnetometer);
-        if (gravSwitchPref
-                || (linearAccSwitchPref && linearAccUnsupported)
-                || (linearAccSwitchPref && !linearAccUnsupported && lpfLinearAccCheckBoxPref))
-            sensorManager.unregisterListener(this, gravmeter);
-        if (linearAccSwitchPref && !linearAccUnsupported && !lpfLinearAccCheckBoxPref)
-            sensorManager.unregisterListener(this, linearaccelerometer);
-        if (proximitySwitchPref)
-            sensorManager.unregisterListener(this, proximity);*/
+    // Deregisters sensors' listener
+    private void offListener() {
         sensorManager.unregisterListener(this);
     }
 
+    // Creates the text to speech function to talk
     private void speak(final String speech) {
         tts = new TextToSpeech(this, new TextToSpeech.OnInitListener() {
             @Override
@@ -713,24 +608,26 @@ public class MainActivity extends AppCompatActivity
         });
     }
 
+    // Creates the database to store database records
     private void createDatabase() {
         try {
+            // Creates the creates table command
             StringBuilder createCommand = new StringBuilder("CREATE TABLE IF NOT EXISTS sensordata " +
-                    "(id INTEGER primary key, timestamp INTEGER, label TEXT");
+                    "(id INTEGER primary key, timestamp INTEGER NOT NULL, label TEXT NOT NULL");
             if (gyroSwitchPref)
-                createCommand.append(", gyroX REAL, gyroY REAL, gyroZ REAL");
+                createCommand.append(", gyroX REAL NOT NULL, gyroY REAL NOT NULL, gyroZ REAL NOT NULL");
             if (accSwitchPref)
-                createCommand.append(", accX REAL, accY REAL, accZ REAL");
+                createCommand.append(", accX REAL NOT NULL, accY REAL NOT NULL, accZ REAL NOT NULL");
             if (magSwitchPref)
-                createCommand.append(", magX REAL, magY REAL, magZ REAL");
+                createCommand.append(", magX REAL NOT NULL, magY REAL NOT NULL, magZ REAL NOT NULL");
             if (orientationSwitchPref)
-                createCommand.append(", azimut REAL, pitch REAL, roll REAL");
+                createCommand.append(", azimut REAL NOT NULL, pitch REAL NOT NULL, roll REAL NOT NULL");
             if (gravSwitchPref)
-                createCommand.append(", gravX REAL, gravY REAL, gravZ REAL");
+                createCommand.append(", gravX REAL NOT NULL, gravY REAL NOT NULL, gravZ REAL NOT NULL");
             if (linearAccSwitchPref)
-                createCommand.append(", linearAccX REAL, linearAccY REAL, linearAccZ REAL");
+                createCommand.append(", linearAccX REAL NOT NULL, linearAccY REAL NOT NULL, linearAccZ REAL NOT NULL");
             if (proximitySwitchPref)
-                createCommand.append(", proximity INTEGER");
+                createCommand.append(", proximity INTEGER NOT NULL");
             createCommand.append(");");
             sensorDataDB = this.openOrCreateDatabase("CurInstSensorDB", MODE_PRIVATE, null);
             sensorDataDB.beginTransaction();
@@ -756,11 +653,13 @@ public class MainActivity extends AppCompatActivity
         exportCloudButton.setClickable(true);
     }
 
+    // Clear the labels added
     public void clearLabel(View view) {
         labelListInfo.setText(R.string.list_of_labels);
         labels.clear();
     }
 
+    // Deletes label
     public void deleteLabel(View view) {
         if (labels.contains(labelInfo.getText().toString())) {
             labels.remove(labelInfo.getText().toString());
@@ -771,8 +670,8 @@ public class MainActivity extends AppCompatActivity
         labelInfo.setText("");
     }
 
+    // Starts the collects function
     public void startCollect(View view) {
-        // Switching collect mode around after first collection causes crashes
         if (!labels.isEmpty()) {
             addLabelButton.setClickable(false);
             startCollectButton.setClickable(false);
@@ -785,6 +684,7 @@ public class MainActivity extends AppCompatActivity
                 integerIterator = indexForLabel.iterator();
             }
             try {
+                // Use two Timer and TimerTask classes to keep track of collection and stores sensor records
                 collectTimer = new Timer();
                 logTimer = new Timer();
                 TimerTask collectTimerTask = new TimerTask() {
@@ -801,12 +701,6 @@ public class MainActivity extends AppCompatActivity
                             nextLabel = randLabel;
                         }
                         else {
-                            /*if (integerIterator.hasNext())
-                                nextLabel = integerIterator.next();
-                            else {
-                                integerIterator = indexForLabel.iterator();
-                                nextLabel = integerIterator.next();
-                            }*/
                             if (!integerIterator.hasNext())
                                 integerIterator = indexForLabel.iterator();
                             nextLabel = integerIterator.next();
@@ -898,6 +792,7 @@ public class MainActivity extends AppCompatActivity
             Toast.makeText(this, "There is no label", Toast.LENGTH_SHORT).show();
     }
 
+    // Stops the collection process
     public void stopCollect(View view) {
         offListener();
         collectStatus = false;
@@ -911,6 +806,7 @@ public class MainActivity extends AppCompatActivity
         exportCloudButton.setClickable(true);
         stopCollectButton.setClickable(false);
         automatedEventInfo.setVisibility(View.GONE);
+        // Reads sensor records row by row to write to file
         final Cursor cur = sensorDataDB.rawQuery("SELECT * FROM sensordata", null);
         cur.moveToFirst();
         final File file = new File(getApplicationContext().getFilesDir(), "output.csv");
@@ -950,53 +846,63 @@ public class MainActivity extends AppCompatActivity
                         do {
                             publishProgress(cur.getPosition());
                             int columnIndex = 0;
-                            StringBuilder row = new StringBuilder();
+                            //StringBuilder row = new StringBuilder();
                             String recordCount = cur.getString(columnIndex++);
                             String tStamp = cur.getString(columnIndex++);
                             String label = cur.getString(columnIndex++);
-                            row.append(recordCount + ',' + tStamp + ',' + label + ',');
+                            String row = recordCount + ',' + tStamp + ',' + label + ',';
+                            //row.append(recordCount + ',' + tStamp + ',' + label + ',');
                             if (gyroSwitchPref) {
                                 String gyroX = cur.getString(columnIndex++);
                                 String gyroY = cur.getString(columnIndex++);
                                 String gyroZ = cur.getString(columnIndex++);
-                                row.append(gyroX + ',' + gyroY + ',' + gyroZ + ',');
+                                row += gyroX + ',' + gyroY + ',' + gyroZ + ',';
+                                //row.append(gyroX + ',' + gyroY + ',' + gyroZ + ',');
                             }
                             if (accSwitchPref) {
                                 String accX = cur.getString(columnIndex++);
                                 String accY = cur.getString(columnIndex++);
                                 String accZ = cur.getString(columnIndex++);
-                                row.append(accX + ',' + accY + ',' + accZ + ',');
+                                row += accX + ',' + accY + ',' + accZ + ',';
+                                //row.append(accX + ',' + accY + ',' + accZ + ',');
                             }
                             if (magSwitchPref) {
                                 String magX = cur.getString(columnIndex++);
                                 String magY = cur.getString(columnIndex++);
                                 String magZ = cur.getString(columnIndex++);
-                                row.append(magX + ',' + magY + ',' + magZ + ',');
+                                row += magX + ',' + magY + ',' + magZ + ',';
+                                //row.append(magX + ',' + magY + ',' + magZ + ',');
                             }
                             if (orientationSwitchPref) {
                                 String azimut = cur.getString(columnIndex++);
                                 String pitch = cur.getString(columnIndex++);
                                 String roll = cur.getString(columnIndex++);
-                                row.append(azimut + ',' + pitch + ',' + roll + ',');
+                                row += azimut + ',' + pitch + ',' + roll + ',';
+                                //row.append(azimut + ',' + pitch + ',' + roll + ',');
                             }
                             if (gravSwitchPref) {
                                 String gravX = cur.getString(columnIndex++);
                                 String gravY = cur.getString(columnIndex++);
                                 String gravZ = cur.getString(columnIndex++);
-                                row.append(gravX + ',' + gravY + ',' + gravZ + ',');
+                                row += gravX + ',' + gravY + ',' + gravZ + ',';
+                                //row.append(gravX + ',' + gravY + ',' + gravZ + ',');
                             }
                             if (linearAccSwitchPref) {
                                 String linearAccX = cur.getString(columnIndex++);
                                 String linearAccY = cur.getString(columnIndex++);
                                 String linearAccZ = cur.getString(columnIndex++);
-                                row.append(linearAccX + ',' + linearAccY + ',' + linearAccZ + ',');
+                                row += linearAccX + ',' + linearAccY + ',' + linearAccZ + ',';
+                                //row.append(linearAccX + ',' + linearAccY + ',' + linearAccZ + ',');
                             }
                             if (proximitySwitchPref) {
                                 String proximity = cur.getString(columnIndex++);
-                                row.append(proximity);
+                                row += proximity;
+                                //row.append(proximity);
                             }
-                            row.append('\n');
-                            outputStream.write(row.toString().getBytes());
+                            row += '\n';
+                            //row.append('\n');
+                            outputStream.write(row.getBytes());
+                            //outputStream.write(row.toString().getBytes());
                         } while (cur.moveToNext());
                         outputStream.flush();
                         outputStream.close();
@@ -1025,6 +931,7 @@ public class MainActivity extends AppCompatActivity
         }
     }
 
+    // Adds label
     public void labelOutput(View view) {
         if ((labelInfo.getText().toString().toLowerCase()).equals(""))
             Toast.makeText(this, "Please fill in something",
@@ -1041,6 +948,7 @@ public class MainActivity extends AppCompatActivity
         labelInfo.setText("");
     }
 
+    // Exports the sensor data to local device storage
     public void getLocalCSV(View view) {
         File srcFile = new File(getApplicationContext().getFilesDir(), "output.csv");
         if (srcFile.exists()) {
@@ -1097,78 +1005,72 @@ public class MainActivity extends AppCompatActivity
                     super.onProgressUpdate(values);
                 }
             }.execute(srcFile);
-        } else {
-            Toast.makeText(this, "Source file not exists", Toast.LENGTH_LONG).show();
         }
-        return;
+        else
+            Toast.makeText(this, "Source file not exists", Toast.LENGTH_LONG).show();
     }
 
+    // Exports to S3 cloud storage
     public void exportToCloud(View view) {
-        if (sensorDataDB == null) {
+        // Checks either database exists or internet access before exporting to S3 cloud storage
+        if (sensorDataDB == null)
             Toast.makeText(this, "No database created, cannot upload csv", Toast.LENGTH_LONG).show();
-            return;
-        }
-        responseToNoInternetAccess();
-        File file = new File(getApplicationContext().getFilesDir(), "output.csv");
-        if (file.exists()) {
-            final CustomProgressDialog exportProgressDialog = new CustomProgressDialog(
-                    this, "Uploading...",
-                    ProgressDialog.STYLE_HORIZONTAL, false, false,
-                    0, 100);
-            exportProgressDialog.show();
-            /*final ProgressDialog progressDialog = new ProgressDialog(this);
-            progressDialog.setMessage("Uploading...");
-            progressDialog.setIndeterminate(false);
-            progressDialog.setCancelable(false);
-            progressDialog.setProgress(0);
-            progressDialog.setMax(100);
-            progressDialog.show();*/
-            AmazonS3Client s3client = new AmazonS3Client(credentialsProvider);
-            TransferUtility transferUtility =
-                    TransferUtility.builder()
-                            .context(getApplicationContext())
-                            .awsConfiguration(configuration)
-                            .s3Client(s3client)
-                            .build();
-            Date date = new Date();
-            String sdf = new SimpleDateFormat("yyyy-MM-dd hh:mm:ss a").format(date);
-            TransferObserver uploadObserver = transferUtility.upload(
-                    androidID + '/' + sdf + ".csv",
-                    file);
+        else if (!permissionAccessHandler.isInternetAccessAvailable())
+            permissionAccessHandler.responseToNoInternetAccess();
+        else {
+            File file = new File(getApplicationContext().getFilesDir(), "output.csv");
+            if (file.exists()) {
+                final CustomProgressDialog exportProgressDialog = new CustomProgressDialog(
+                        this, "Uploading...",
+                        ProgressDialog.STYLE_HORIZONTAL, false, false,
+                        0, 100);
+                exportProgressDialog.show();
 
-            // Attach a listener to the observer to get state update and progress notifications
-            uploadObserver.setTransferListener(new TransferListener() {
-                @Override
-                public void onStateChanged(int id, TransferState state) {
-                    if (TransferState.COMPLETED == state) {
+                TransferUtility transferUtility =
+                        TransferUtility.builder()
+                                .context(getApplicationContext())
+                                .s3Client(s3Handler.getS3client())
+                                .build();
+                Date date = new Date();
+                String sdf = new SimpleDateFormat("yyyy-MM-dd hh:mm:ss a").format(date);
+                TransferObserver uploadObserver = transferUtility.upload(s3Handler.getBucketName(),
+                        s3Handler.getAndroidID() + '/' + sdf + ".csv",
+                        file);
+
+                // Attach a listener to the observer to get state update and progress notifications
+                uploadObserver.setTransferListener(new TransferListener() {
+                    @Override
+                    public void onStateChanged(int id, TransferState state) {
+                        if (TransferState.COMPLETED == state) {
+                            if (exportProgressDialog.isShowing())
+                                exportProgressDialog.dismiss();
+                            // Handle a completed upload.
+                            Toast.makeText(getApplicationContext(), "CSV file uploaded to AWS S3", Toast.LENGTH_LONG).show();
+                        }
+                    }
+
+                    @Override
+                    public void onProgressChanged(int id, long bytesCurrent, long bytesTotal) {
+                        float percentDonef = ((float) bytesCurrent / (float) bytesTotal) * 100;
+                        int percentDone = (int) percentDonef;
+                        Log.d("YourActivity", "ID:" + id + " bytesCurrent: " + bytesCurrent
+                                + " bytesTotal: " + bytesTotal + " " + percentDone + "%");
+                        exportProgressDialog.setProgress(percentDone);
+                    }
+
+                    @Override
+                    public void onError(int id, Exception ex) {
+                        // Handle errors
                         if (exportProgressDialog.isShowing())
                             exportProgressDialog.dismiss();
-                        // Handle a completed upload.
-                        Toast.makeText(getApplicationContext(), "CSV file uploaded to AWS S3", Toast.LENGTH_LONG).show();
+                        Toast.makeText(getApplicationContext(), "Please check internet connection", Toast.LENGTH_SHORT).show();
                     }
-                }
+                });
 
-                @Override
-                public void onProgressChanged(int id, long bytesCurrent, long bytesTotal) {
-                    float percentDonef = ((float) bytesCurrent / (float) bytesTotal) * 100;
-                    int percentDone = (int) percentDonef;
-                    Log.d("YourActivity", "ID:" + id + " bytesCurrent: " + bytesCurrent
-                            + " bytesTotal: " + bytesTotal + " " + percentDone + "%");
-                    exportProgressDialog.setProgress(percentDone);
-                }
-
-                @Override
-                public void onError(int id, Exception ex) {
-                    // Handle errors
-                    if (exportProgressDialog.isShowing())
-                        exportProgressDialog.dismiss();
-                    Toast.makeText(getApplicationContext(), "Please check internet connection", Toast.LENGTH_SHORT).show();
-                }
-            });
-
-            Log.d("YourActivity", "Bytes Transferred: " + uploadObserver.getBytesTransferred());
-            Log.d("YourActivity", "Bytes Total: " + uploadObserver.getBytesTotal());
-        } else
-            Toast.makeText(this, "File does not exist", Toast.LENGTH_SHORT).show();
+                Log.d("YourActivity", "Bytes Transferred: " + uploadObserver.getBytesTransferred());
+                Log.d("YourActivity", "Bytes Total: " + uploadObserver.getBytesTotal());
+            } else
+                Toast.makeText(this, "File does not exist", Toast.LENGTH_SHORT).show();
+        }
     }
 }

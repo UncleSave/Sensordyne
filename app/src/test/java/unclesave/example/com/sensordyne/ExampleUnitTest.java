@@ -1,4 +1,4 @@
-package unclesave.example.com.test2;
+package unclesave.example.com.sensordyne;
 
 import org.junit.Test;
 

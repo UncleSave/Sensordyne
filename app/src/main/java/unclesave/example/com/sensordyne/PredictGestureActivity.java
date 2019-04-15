@@ -1,4 +1,4 @@
-package unclesave.example.com.test2;
+package unclesave.example.com.sensordyne;
 
 import android.hardware.Sensor;
 import android.hardware.SensorEvent;
@@ -20,6 +20,7 @@ import java.util.Locale;
 import java.util.Timer;
 import java.util.TimerTask;
 
+// An activity that predicts hand gesture
 public class PredictGestureActivity extends AppCompatActivity implements SensorEventListener {
 
     private static final int N_SAMPLES = 15;
@@ -53,7 +54,7 @@ public class PredictGestureActivity extends AppCompatActivity implements SensorE
     private float orientationVal[];
     private float gravVal[];
     private float r[];
-    private float[] results;
+    private float results[];
     private TensorFlowClassifier classifier;
     private List<Float> data = new ArrayList<>();
     private Timer collectTimer;
@@ -101,7 +102,13 @@ public class PredictGestureActivity extends AppCompatActivity implements SensorE
         gravVal = new float[3];
         orientationVal = new float[3];
         r = new float[9];
-        classifier = new TensorFlowClassifier(getApplicationContext());
+        classifier = new TensorFlowClassifier(getApplicationContext(),
+                "file:///android_asset/handgesture.pb",
+                "lstm_1_input",
+                new String[]{"dense_2/Softmax"},
+                "dense_2/Softmax",
+                new long[]{1, 15, 15},
+                3);
         startPredictButton = findViewById(R.id.start_predict_button);
         stopPredictButton = findViewById(R.id.stop_predict_button);
         stopPredictButton.setClickable(false);
@@ -116,6 +123,7 @@ public class PredictGestureActivity extends AppCompatActivity implements SensorE
     @Override
     protected void onStart() {
         super.onStart();
+        // Registers sensors' listener
         sensorManager.registerListener(this, gyroscope,
                 SensorManager.SENSOR_DELAY_FASTEST);
         sensorManager.registerListener(this, accelerometer,
@@ -129,12 +137,14 @@ public class PredictGestureActivity extends AppCompatActivity implements SensorE
     @Override
     protected void onPause() {
         super.onPause();
+        // Deregisters sensors' listener
         sensorManager.unregisterListener(this);
     }
 
     @Override
     protected void onResume() {
         super.onResume();
+        // Registers sensors' listener
         sensorManager.registerListener(this, gyroscope,
                 SensorManager.SENSOR_DELAY_FASTEST);
         sensorManager.registerListener(this, accelerometer,
@@ -148,11 +158,13 @@ public class PredictGestureActivity extends AppCompatActivity implements SensorE
     @Override
     protected void onStop() {
         super.onStop();
+        // Deregisters sensors' listener
         sensorManager.unregisterListener(this);
     }
 
     @Override
     public void onSensorChanged(SensorEvent event) {
+        // Stores sensor data in array respectively
         int sensorType = event.sensor.getType();
         switch (sensorType) {
             case Sensor.TYPE_GYROSCOPE:
@@ -203,6 +215,7 @@ public class PredictGestureActivity extends AppCompatActivity implements SensorE
         });
     }
 
+    // Finds the highest probabilities between few classes
     private String findHighestProb(float[] results) {
         int maxIndex = 0;
         float max = 0.0f;
@@ -225,6 +238,7 @@ public class PredictGestureActivity extends AppCompatActivity implements SensorE
         return maxClass;
     }
 
+    // Starts predict (collect sensor data and put in inference classes)
     public void startPredict(View view) {
         startPredictButton.setClickable(false);
         stopPredictButton.setClickable(true);
@@ -313,6 +327,7 @@ public class PredictGestureActivity extends AppCompatActivity implements SensorE
         logTimer.schedule(logTimerTask, 0, 200);
     }
 
+    // Stops predict
     public void stopPredict(View view) {
         collectTimer.cancel();
         logTimer.cancel();
@@ -320,6 +335,7 @@ public class PredictGestureActivity extends AppCompatActivity implements SensorE
         stopPredictButton.setClickable(false);
     }
 
+    // Accepts a List<Float> and converts to an array of float
     private float[] toFloatArray(List<Float> list) {
         int i = 0;
         float[] array = new float[list.size()];
@@ -329,6 +345,7 @@ public class PredictGestureActivity extends AppCompatActivity implements SensorE
         return array;
     }
 
+    // Rounds off the value to specified decimal place
     private static float round(float d, int decimalPlace) {
         BigDecimal bd = new BigDecimal(Float.toString(d));
         bd = bd.setScale(decimalPlace, BigDecimal.ROUND_HALF_UP);

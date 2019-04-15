@@ -5,7 +5,8 @@
 
     <!-- Strings related to Activity Drawer -->
     <string name="manage_file">Manage File</string>
-    <string name="build_model">Build Model</string>
+    <string name="fit_model">Fit Model</string>
+    <string name="convert_model">Convert Model</string>
     <string name="neural_network_settings">Model and Neural Network settings</string>
 
     <!-- Strings related to Options Menu -->
@@ -14,8 +15,6 @@
     <string name="action_exit">Exit</string>
 
     <!-- Strings related to Main -->
-    <string name="accelerometer_text">Accelerometer: %1$.3f m/s^2 %2$.3f m/s^2 %3$.3f m/s^2</string>
-    <string name="gyroscope_text">Gyroscope: %1$.3f rad/s %2$.3f rad/s %3$.3f rad/s</string>
     <string name="device_info">Device Info</string>
     <string name="placeholder">(placeholder)</string>
     <string name="export_to_cloud_format">Export to cloud</string>
@@ -23,17 +22,16 @@
     <string name="add_label">Add</string>
     <string name="clear_label">Clear</string>
     <string name="delete_label">Delete</string>
-    <string name="delete_csv_file">Delete CSV file</string>
     <string name="please_enter_your_label_at_the_line_below">Please enter your label at the line below:</string>
     <string name="ex_left">Ex: left</string>
     <string name="list_of_labels">List of labels:</string>
     <string name="start_collect">Start collect</string>
     <string name="show_label">Show label:</string>
+    <string name="get_local_csv">Get local CSV</string>
 
     <!-- Strings related to Settings -->
     <string name="settings_gyroscope_data_summary">Keep track of the gyroscope data</string>
     <string name="settings_gyroscope_data_title">Gyroscope data</string>
-    <string name="settings_accelerometer_data_summary">Keep track of the accelerometer data</string>
     <string name="settings_accelerometer_data_title">Accelerometer data</string>
 
     <!-- Strings related to Check Sensor -->
@@ -42,12 +40,9 @@
     <!-- Strings related to Delete Dataset -->
     <string name="enter_file_name_here">Enter file name here</string>
     <string name="delete">Delete</string>
-
-    <!-- Strings related to Build Model -->
-    <string name="fit_model">Fit model</string>
+    <string name="share">Share</string>
 
     <!-- Strings related to Neural Network Settings -->
-    <string name="save">Save</string>
     <string name="activation_function">Activation function:</string>
     <string name="optimizer">Optimizer:</string>
     <string name="loss_function">Loss function:</string>
@@ -57,12 +52,36 @@
     <string name="dropout_default_value">0.16</string>
     <string name="epoch_default_value">5</string>
     <string name="batchsize_default_value">5</string>
+    <string name="time_step">Time step:</string>
+    <string name="model_settings">Model Settings</string>
+    <string name="layer_type">Layer type:</string>
+    <string name="number_of_unit">Number of unit:</string>
+    <string name="unit_default_value">64</string>
+    <string name="input_shape_info">Input shape info:</string>
+    <string name="input_shape_default_value">(20,2)</string>
+    <string name="timestep_default_value">20</string>
+    <string name="add_layer_to_model">Add Layer to Model</string>
+    <string name="save_model">Save Model</string>
+    <string name="training_settings">Training settings</string>
+    <string name="save_settings">Save Settings</string>
+
+    <!-- Strings related to Predict -->
     <string name="predict_gesture">Predict gesture</string>
     <string name="predict_morse_code">Predict morse code</string>
-    <string name="time_step">Time step:</string>
-    <string name="timestep_default_value">20</string>
-    <string name="hidden_layer">Hidden Layer:</string>
-    <string name="hiddenlayer_default_value">8</string>
+    <string name="start_predict">Start predict</string>
+    <string name="stop_predict">Stop predict</string>
+    <string name="t">t:</string>
+    <string name="m">m:</string>
+    <string name="n">n:</string>
+    <string name="result">Result:</string>
+    <string name="left">Left:</string>
+    <string name="right">Right:</string>
+    <string name="on_table">On table:</string>
+
+    <!-- Strings related to Manage File -->
     <string name="download">Download</string>
+    <string name="input_android_id">Input Android ID</string>
+    <string name="save_and_share">Save and share</string>
+    <string name="cancel_share">Cancel share</string>
 
 </resources>

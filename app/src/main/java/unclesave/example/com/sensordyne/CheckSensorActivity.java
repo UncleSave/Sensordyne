@@ -1,4 +1,4 @@
-package unclesave.example.com.test2;
+package unclesave.example.com.sensordyne;
 
 import android.content.Context;
 import android.hardware.Sensor;
@@ -10,6 +10,7 @@ import android.widget.ListView;
 import java.util.ArrayList;
 import java.util.List;
 
+// An activity which acquires the list of sensors available on the device
 public class CheckSensorActivity extends AppCompatActivity {
 
     ArrayList<String> sensorNames = new ArrayList<>();

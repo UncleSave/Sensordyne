@@ -7,7 +7,7 @@
 
     <array name="layer_type">
         <item>Dense</item>
-        <item>LTSM</item>
+        <item>LSTM</item>
     </array>
 
     <array name="timer_mode">
@@ -15,8 +15,4 @@
         <item>ScheduleAtFixedRate</item>
     </array>
 
-    <array name="orientation_dependency">
-        <item>accelerometer_switch</item>
-        <item>magnetometer_switch</item>
-    </array>
 </resources>

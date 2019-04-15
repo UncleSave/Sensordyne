@@ -12,7 +12,7 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:paddingBottom="5dp"
-        android:text="Model Settings"
+        android:text="@string/model_settings"
         android:textColor="#000"
         android:textSize="21sp"
         app:layout_constraintLeft_toLeftOf="parent" />
@@ -22,7 +22,7 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:paddingBottom="5dp"
-        android:text="Layer type:"
+        android:text="@string/layer_type"
         android:textColor="#000"
         android:textSize="21sp"
         app:layout_constraintLeft_toLeftOf="parent"
@@ -45,7 +45,7 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:paddingBottom="5dp"
-        android:text="Number of unit:"
+        android:text="@string/number_of_unit"
         android:textColor="#000"
         android:textSize="21sp"
         app:layout_constraintLeft_toLeftOf="parent"
@@ -57,7 +57,7 @@
         android:layout_height="wrap_content"
         android:inputType="number"
         android:paddingTop="0dp"
-        android:hint="64"
+        android:hint="@string/unit_default_value"
         android:textColor="#000"
         android:textSize="21sp"
         app:layout_constraintLeft_toRightOf="@id/unit_info"
@@ -68,7 +68,7 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:paddingBottom="5dp"
-        android:text="Input shape info:"
+        android:text="@string/input_shape_info"
         android:textColor="#000"
         android:textSize="21sp"
         app:layout_constraintLeft_toLeftOf="parent"
@@ -80,7 +80,7 @@
         android:layout_height="wrap_content"
         android:inputType="text"
         android:paddingTop="0dp"
-        android:hint="(20, 2)"
+        android:hint="@string/input_shape_default_value"
         android:textColor="#000"
         android:textSize="21sp"
         app:layout_constraintLeft_toRightOf="@id/input_shape_info"
@@ -179,7 +179,7 @@
         android:clickable="true"
         android:focusable="false"
         android:onClick="addLayer"
-        android:text="Add Layer to Model"
+        android:text="@string/add_layer_to_model"
         app:layout_constraintTop_toBottomOf="@+id/loss_info" />
 
     <Button
@@ -189,7 +189,7 @@
         android:clickable="true"
         android:focusable="false"
         android:onClick="saveModel"
-        android:text="Save Model"
+        android:text="@string/save_model"
         app:layout_constraintLeft_toRightOf="@+id/add_layer_button"
         app:layout_constraintTop_toBottomOf="@+id/loss_info" />
 
@@ -198,7 +198,7 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:paddingBottom="5dp"
-        android:text="Training settings"
+        android:text="@string/training_settings"
         android:textColor="#000"
         android:textSize="21sp"
         app:layout_constraintLeft_toLeftOf="parent"
@@ -281,7 +281,7 @@
         android:clickable="true"
         android:focusable="false"
         android:onClick="saveFitModelSettings"
-        android:text="Save Settings"
+        android:text="@string/save_settings"
         app:layout_constraintTop_toBottomOf="@+id/timesteps_info" />
 
 

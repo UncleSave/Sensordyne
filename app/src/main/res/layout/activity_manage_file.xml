@@ -4,24 +4,15 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    app:layout_behavior="@string/appbar_scrolling_view_behavior"
     android:padding="10dp"
     tools:context=".ManageFileActivity">
-
-    <TextView
-        android:id="@+id/files_info"
-        android:layout_width="match_parent"
-        android:layout_height="250dp"
-        app:layout_constraintLeft_toLeftOf="parent"
-        android:scrollbars="vertical"
-        android:textColor="#000"
-        android:textSize="21sp" />
 
     <EditText
         android:id="@+id/file_info"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         app:layout_constraintLeft_toLeftOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/files_info"
         android:hint="@string/enter_file_name_here"
         android:inputType="text"
         android:textColor="#000"
@@ -52,5 +43,32 @@
         android:layout_alignLeft="@+id/download_button"
         app:layout_constraintLeft_toRightOf="@id/download_button"
         app:layout_constraintTop_toBottomOf="@id/file_info"/>
+
+    <Button
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_below="@+id/file_info"
+        android:clickable="true"
+        android:focusable="false"
+        android:onClick="shareFile"
+        android:text="@string/share"
+        android:layout_alignLeft="@+id/delete_button"
+        app:layout_constraintLeft_toRightOf="@id/delete_button"
+        app:layout_constraintTop_toBottomOf="@id/file_info"/>
+
+    <ScrollView
+        android:layout_width="wrap_content"
+        android:layout_height="370dp"
+        app:layout_constraintLeft_toLeftOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/download_button">
+        <TextView
+            android:id="@+id/files_info"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textIsSelectable="true"
+            android:textColor="#000"
+            android:textSize="21sp" />
+    </ScrollView>
+
 
 </android.support.constraint.ConstraintLayout>
