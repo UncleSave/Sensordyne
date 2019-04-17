@@ -63,16 +63,6 @@ public class CustomDialogFragment extends DialogFragment {
             message = "Cannot start sensor manager or either one of the sensors is missing:" +
                     " gyroscope, accelerometer, magnetometer, gravmeter";
             positiveButtonText = "Close";
-        } else if (dialogCode == 300) {
-            title = "Fit model graph prompt";
-            message = "Do you want to visualise the graph?";
-            positiveButtonText = "Yes";
-            negativeButtonText = "No";
-        } else if (dialogCode == 301) {
-            title = "Fit model example prompt";
-            message = "Do you want to use the example?";
-            positiveButtonText = "Yes";
-            negativeButtonText = "No";
         } else if (dialogCode == 400) {
             title = "Missing bucket";
             message = "Cannot access Amazon S3 bucket";
@@ -104,10 +94,6 @@ public class CustomDialogFragment extends DialogFragment {
                                 getActivity().finish();
                             else if (dialogCode == 200)
                                 getActivity().finish();
-                            else if (dialogCode == 300)
-                                ((FitModelActivity) getActivity()).wantGraph("y");
-                            else if (dialogCode == 301)
-                                ((FitModelActivity) getActivity()).useExample("y");
                             else if (dialogCode == 400)
                                 getActivity().finish();
                             else;
@@ -119,11 +105,6 @@ public class CustomDialogFragment extends DialogFragment {
                     new DialogInterface.OnClickListener() {
                         @Override
                         public void onClick(DialogInterface arg0, int arg1) {
-                            if (dialogCode == 300)
-                                ((FitModelActivity) getActivity()).wantGraph("n");
-                            else if (dialogCode == 301)
-                                ((FitModelActivity) getActivity()).useExample("n");
-                            else ;
                         }
                     });
         }

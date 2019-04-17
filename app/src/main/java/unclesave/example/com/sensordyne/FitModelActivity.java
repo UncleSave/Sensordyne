@@ -6,6 +6,8 @@ import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
 import android.view.View;
 import android.widget.Button;
+import android.widget.CheckBox;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import java.io.IOException;
@@ -20,9 +22,9 @@ public class FitModelActivity extends AppCompatActivity {
     private PermissionAccessHandler permissionAccessHandler;
     private S3Handler s3Handler;
     private Button fitModelButton, convertModelButton;
-    private String graphVisualization;
-    private String example;
-    //private TextView trainingOutputInfo;
+    private CheckBox graphCheckBox, confusionMatrixCheckBox, exampleCheckBox;
+    private String graphVisualization, confusionVisualization, example;
+    private TextView trainingOutputInfo;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -43,7 +45,10 @@ public class FitModelActivity extends AppCompatActivity {
                         .getDefaultSharedPreferences(this);
         fitModelButton = findViewById(R.id.fit_model_button);
         convertModelButton = findViewById(R.id.convert_model_button);
-        //trainingOutputInfo = findViewById(R.id.training_output);
+        graphCheckBox = findViewById(R.id.graph_visualize);
+        confusionMatrixCheckBox = findViewById(R.id.confusion_matrix);
+        exampleCheckBox = findViewById(R.id.example);
+        trainingOutputInfo = findViewById(R.id.training_output);
     }
 
     // Fits / trains the built model
@@ -52,8 +57,18 @@ public class FitModelActivity extends AppCompatActivity {
         if (!permissionAccessHandler.isInternetAccessAvailable())
             permissionAccessHandler.responseToNoInternetAccess();
         else {
-            CustomDialogFragment promptGraphDialog = CustomDialogFragment.newInstance(300);
-            promptGraphDialog.show(getFragmentManager(), null);
+            if (graphCheckBox.isChecked())
+                this.wantGraph("y");
+            else
+                this.wantGraph("n");
+            if (confusionMatrixCheckBox.isChecked())
+                this.wantConfusionMatrix("y");
+            else
+                this.wantConfusionMatrix("n");
+            if (exampleCheckBox.isChecked())
+                this.useExample("y");
+            else
+                this.useExample("n");
             final String urllink = "http://13.228.232.119/fitmodel/";
             new AsyncTask<Void, Void, String>() {
                 @Override
@@ -63,8 +78,8 @@ public class FitModelActivity extends AppCompatActivity {
                             .writeTimeout(36, TimeUnit.MINUTES)
                             .readTimeout(36, TimeUnit.MINUTES)
                             .build();
-                    Request request = new Request.Builder().url(urllink + s3Handler.getAndroidID() + ";" +
-                            graphVisualization + ";" + example).build();
+                    Request request = new Request.Builder().url(urllink + s3Handler.getAndroidID() + ";" + confusionVisualization
+                            + ";" + graphVisualization + ";" + example).build();
                     try {
                         return okHttpClient.newCall(request).execute().body().string();
                     } catch (IOException e) {
@@ -83,9 +98,67 @@ public class FitModelActivity extends AppCompatActivity {
                 @Override
                 protected void onPostExecute(String result) {
                     super.onPostExecute(result);
-                /*trainingOutputInfo.setVisibility(View.VISIBLE);
-                String formattedResult = result.replace(";", "\n");
-                trainingOutputInfo.setText(formattedResult);*/
+                    trainingOutputInfo.setVisibility(View.VISIBLE);
+                    trainingOutputInfo.setText(result);
+                }
+
+                @Override
+                protected void onProgressUpdate(Void... values) {
+                    super.onProgressUpdate(values);
+                }
+            }.execute();
+        }
+    }
+
+    // Continues to train the built model
+    public void continueTrainModel(View view) {
+        // Checks the internet access
+        if (!permissionAccessHandler.isInternetAccessAvailable())
+            permissionAccessHandler.responseToNoInternetAccess();
+        else {
+            if (graphCheckBox.isChecked())
+                this.wantGraph("y");
+            else
+                this.wantGraph("n");
+            if (confusionMatrixCheckBox.isChecked())
+                this.wantConfusionMatrix("y");
+            else
+                this.wantConfusionMatrix("n");
+            if (exampleCheckBox.isChecked())
+                this.useExample("y");
+            else
+                this.useExample("n");
+            final String urllink = "http://13.228.232.119/continuetrainmodel/";
+            new AsyncTask<Void, Void, String>() {
+                @Override
+                protected String doInBackground(Void... params) {
+                    OkHttpClient okHttpClient = new OkHttpClient();
+                    okHttpClient = okHttpClient.newBuilder().connectTimeout(36, TimeUnit.MINUTES)
+                            .writeTimeout(36, TimeUnit.MINUTES)
+                            .readTimeout(36, TimeUnit.MINUTES)
+                            .build();
+                    Request request = new Request.Builder().url(urllink + s3Handler.getAndroidID() + ";" + confusionVisualization
+                            + ";" + graphVisualization + ";" + example).build();
+                    try {
+                        return okHttpClient.newCall(request).execute().body().string();
+                    } catch (IOException e) {
+                        return "IOException occurs";
+                    } catch (NullPointerException e) {
+                        return "NullPointerException occurs";
+                    }
+                }
+
+                @Override
+                protected void onPreExecute() {
+                    super.onPreExecute();
+                    Toast.makeText(getApplicationContext(), "Please wait for a few minutes for the result, it might take a long time", Toast.LENGTH_LONG).show();
+                }
+
+                @Override
+                protected void onPostExecute(String result) {
+                    super.onPostExecute(result);
+                    trainingOutputInfo.setVisibility(View.VISIBLE);
+                    trainingOutputInfo.setText(result);
                 }
 
                 @Override
@@ -146,7 +219,8 @@ public class FitModelActivity extends AppCompatActivity {
     // Create the training accuracy / loss graph
     public void wantGraph(String graphVisualization) { this.graphVisualization = graphVisualization; }
 
-    public void useExample(String example) {
-        this.example = example;
-    }
+    // Create confusion matrix
+    public void wantConfusionMatrix(String confusionVisualization) { this.confusionVisualization = confusionVisualization; }
+
+    public void useExample(String example) { this.example = example; }
 }

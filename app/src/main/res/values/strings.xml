@@ -6,6 +6,7 @@
     <!-- Strings related to Activity Drawer -->
     <string name="manage_file">Manage File</string>
     <string name="fit_model">Fit Model</string>
+    <string name="continue_train_model">Continue Train</string>
     <string name="convert_model">Convert Model</string>
     <string name="neural_network_settings">Model and Neural Network settings</string>
 

@@ -11,7 +11,8 @@
         android:id="@+id/fit_model_button"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:clickable="false"
+        android:clickable="true"
+        android:focusable="false"
         android:onClick="fitModel"
         android:text="@string/fit_model" />
 
@@ -22,22 +23,47 @@
         android:clickable="true"
         android:focusable="false"
         android:onClick="convertModel"
-        app:layout_constraintLeft_toRightOf="@id/fit_model_button"
-        android:text="@string/convert_model" />
+        android:text="@string/convert_model"
+        app:layout_constraintLeft_toRightOf="@+id/fit_model_button" />
 
-    <!--<ScrollView
+    <Button
+        android:id="@+id/continue_train_button"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_below="@+id/fit_model_button"
-        android:paddingBottom="10dp" >
+        android:clickable="true"
+        android:focusable="false"
+        android:onClick="continueTrainModel"
+        android:text="@string/continue_train_model"
+        app:layout_constraintTop_toBottomOf="@id/fit_model_button" />
 
-        <TextView
-            android:id="@+id/training_output"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:textColor="#000"
-            android:textSize="15sp"
-            android:padding="10dp" />
-    </ScrollView>-->
+    <CheckBox
+        android:id="@+id/graph_visualize"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Graph visualization"
+        app:layout_constraintTop_toBottomOf="@id/continue_train_button"/>
+
+    <CheckBox
+        android:id="@+id/confusion_matrix"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Confusion matrix visualization"
+        app:layout_constraintTop_toBottomOf="@id/graph_visualize"/>
+
+    <CheckBox
+        android:id="@+id/example"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Example"
+        app:layout_constraintTop_toBottomOf="@id/confusion_matrix"/>
+
+    <TextView
+        android:id="@+id/training_output"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        app:layout_constraintTop_toBottomOf="@id/example"
+        android:text=""
+        android:textColor="#000"
+        android:textSize="21dp" />
 
 </android.support.constraint.ConstraintLayout>
